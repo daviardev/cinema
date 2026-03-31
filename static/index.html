@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CINEVOX — Booking</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="loader-logo">CINE<span>VOX</span></div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<!-- NAV -->
+<nav id="app-nav">
+  <div class="nav-left">
+    <button id="btn-back" aria-label="Volver">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Volver
+    </button>
+    <a class="nav-logo" href="#" onclick="navigate('home');return false;">CINE<span>VOX</span></a>
+  </div>
+
+  <div id="step-indicator">
+    <div class="step-item" id="step-1">
+      <span class="step-num">1</span>
+      <span class="step-label">Película</span>
+    </div>
+    <span class="step-arrow">›</span>
+    <div class="step-item" id="step-2">
+      <span class="step-num">2</span>
+      <span class="step-label">Función</span>
+    </div>
+    <span class="step-arrow">›</span>
+    <div class="step-item" id="step-3">
+      <span class="step-num">3</span>
+      <span class="step-label">Asientos</span>
+    </div>
+    <span class="step-arrow">›</span>
+    <div class="step-item" id="step-4">
+      <span class="step-num">4</span>
+      <span class="step-label">Confirmar</span>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <div id="cart-chip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+      </svg>
+      <span id="cart-count">0</span>
+    </div>
+  </div>
+</nav>
+
+<!-- PROGRESS BAR -->
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- ════════════════════════════
+       VIEW: HOME
+  ════════════════════════════ -->
+  <section class="view active" id="view-home">
+    <div class="home-hero">
+      <div class="home-hero-inner">
+        <p class="home-kicker">Cartelera 2025</p>
+        <h1 class="home-title">
+          Ahora<br>en cartelera
+          <em>Elige tu película</em>
+        </h1>
+        <p class="home-sub" id="home-sub-count">— películas disponibles</p>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-pills" id="genre-filters">
+        <button class="filter-pill active" data-genre="all">Todas</button>
+      </div>
+      <span class="movies-count" id="count-display"></span>
+    </div>
+    <div class="movies-grid-home" id="movies-grid"></div>
+  </section>
+
+  <!-- ════════════════════════════
+       VIEW: DETAIL
+  ════════════════════════════ -->
+  <section class="view" id="view-detail">
+    <div class="detail-hero">
+      <div class="detail-bg" id="detail-bg"></div>
+      <div class="detail-vignette"></div>
+      <div class="detail-hero-content">
+        <img class="detail-poster" id="detail-poster" src="" alt=""/>
+        <div class="detail-info">
+          <div class="detail-genres" id="detail-genres"></div>
+          <h2 class="detail-title" id="detail-title"></h2>
+          <p class="detail-tagline" id="detail-tagline"></p>
+          <div class="detail-meta-row">
+            <span class="detail-rating" id="detail-rating"></span>
+            <span class="detail-sep">·</span>
+            <span id="detail-duration"></span>
+            <span class="detail-sep">·</span>
+            <span id="detail-year"></span>
+            <span class="detail-sep">·</span>
+            <span id="detail-director"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-body">
+      <div class="detail-grid">
+        <div>
+          <p class="section-head">Sinopsis</p>
+          <p class="detail-synopsis" id="detail-synopsis"></p>
+          <div class="detail-cast" id="detail-cast"></div>
+          <div class="detail-action">
+            <button id="btn-to-seats" disabled onclick="goToSeats()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="15" rx="2"/>
+                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+              </svg>
+              Seleccionar asientos
+            </button>
+          </div>
+        </div>
+        <div>
+          <p class="section-head">Funciones disponibles</p>
+          <div id="functions-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════
+       VIEW: SEATS
+  ════════════════════════════ -->
+  <section class="view" id="view-seats">
+    <div class="seats-layout">
+      <!-- LEFT: Map -->
+      <div class="seat-map-area">
+        <h2 class="seat-view-title" id="seat-movie-title"></h2>
+        <p class="seat-view-sub" id="seat-fn-info"></p>
+
+        <div class="screen-container">
+          <div class="screen-bar"></div>
+          <p class="screen-label">Pantalla</p>
+        </div>
+
+        <div class="seat-legend">
+          <div class="legend-item"><div class="legend-dot available-std"></div>Estándar</div>
+          <div class="legend-item"><div class="legend-dot available-prm"></div>Premium</div>
+          <div class="legend-item"><div class="legend-dot available-vip"></div>VIP</div>
+          <div class="legend-item"><div class="legend-dot reserved"></div>Reservado</div>
+          <div class="legend-item"><div class="legend-dot selected"></div>Seleccionado</div>
+        </div>
+
+        <div class="seat-grid-wrap">
+          <div class="seat-grid" id="seat-grid"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Booking panel -->
+      <div class="booking-panel">
+        <h3 class="booking-panel-title">Tu reserva</h3>
+
+        <div class="panel-movie" id="panel-movie-info"></div>
+
+        <p class="panel-section-label">Asientos seleccionados</p>
+        <div class="selected-seats-list" id="selected-list">
+          <span class="no-seats-msg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+            </svg>
+            Toca un asiento para seleccionarlo
+          </span>
+        </div>
+
+        <div class="price-breakdown" id="price-breakdown">
+          <div class="price-line">
+            <span>Asientos (<span id="seat-count-label">0</span>)</span>
+            <span class="price-val" id="subtotal-val">$0.00</span>
+          </div>
+          <div class="price-line">
+            <span>Cargo por servicio</span>
+            <span class="price-val" id="fee-val">$0.00</span>
+          </div>
+          <div class="price-line total">
+            <span>Total</span>
+            <span class="price-val total-val" id="total-val">$0.00</span>
+          </div>
+        </div>
+        <p class="service-note">* Los precios incluyen impuestos</p>
+
+        <div class="purchase-btn-wrap">
+          <button id="btn-purchase" disabled onclick="purchase()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Confirmar compra
+          </button>
+        </div>
+        <p class="purchase-legal">Al confirmar aceptas nuestros términos de servicio. Esta transacción es segura y cifrada.</p>
+      </div>
+    </div>
+
+    <!-- MOBILE PURCHASE BAR -->
+    <div class="mobile-purchase-bar" id="mobile-bar">
+      <div class="mobile-bar-top">
+        <div>
+          <div class="mobile-total" id="mobile-total-val">$0.00</div>
+          <div class="mobile-seats-count" id="mobile-seats-label">0 asientos seleccionados</div>
+        </div>
+      </div>
+      <button id="btn-purchase-mobile" disabled onclick="purchase()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Confirmar compra
+      </button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════
+       VIEW: CONFIRM
+  ════════════════════════════ -->
+  <section class="view" id="view-confirm">
+    <div class="confirm-inner">
+      <div class="confirm-success">
+        <div class="confirm-icon">✓</div>
+        <h2 class="confirm-headline">¡Compra<br>exitosa!</h2>
+        <p class="confirm-sub">Tu entrada ha sido reservada. Guarda este código.</p>
+      </div>
+
+      <div class="ticket" id="ticket">
+        <div class="ticket-header">
+          <span class="ticket-logo">CINE<span>VOX</span></span>
+          <span class="ticket-type">Entrada Digital</span>
+        </div>
+        <div class="ticket-perf"><div class="ticket-perf-line"></div></div>
+        <div class="ticket-body">
+          <h3 class="ticket-movie" id="ticket-movie"></h3>
+          <p class="ticket-tagline" id="ticket-tagline"></p>
+          <div class="ticket-grid">
+            <div class="ticket-field">
+              <label>Fecha</label>
+              <div class="val" id="ticket-date"></div>
+            </div>
+            <div class="ticket-field">
+              <label>Hora</label>
+              <div class="val" id="ticket-time"></div>
+            </div>
+            <div class="ticket-field">
+              <label>Sala</label>
+              <div class="val val-sm" id="ticket-hall"></div>
+            </div>
+            <div class="ticket-field">
+              <label>Formato</label>
+              <div class="val val-sm" id="ticket-format"></div>
+            </div>
+          </div>
+          <div class="ticket-seats">
+            <label style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Asientos</label>
+            <div class="ticket-seat-chips" id="ticket-seats"></div>
+          </div>
+          <div class="ticket-price-row">
+            <span class="ticket-price-label">Total pagado</span>
+            <span class="ticket-price-val" id="ticket-price"></span>
+          </div>
+        </div>
+        <div class="ticket-code-area">
+          <div>
+            <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Código de ticket</div>
+            <div class="ticket-code-text" id="ticket-code"></div>
+          </div>
+          <div class="ticket-barcode" id="barcode"></div>
+        </div>
+      </div>
+
+      <div class="confirm-actions">
+        <button class="btn-home-again" onclick="resetAndGoHome()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          Volver al inicio
+        </button>
+        <button class="btn-print" onclick="window.print()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline">
+            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Imprimir entrada
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div><!-- #app -->
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+</body>
+<script type="module" src="js/main.js"></script>
+</html>
