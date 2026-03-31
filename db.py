@@ -10,17 +10,3 @@ def get_db_connection():
         database=DB_NAME,
         port=DB_PORT
     )
-
-def getGeneros():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    sql = "SELECT * FROM generos"
-    cursor.execute(sql)
-
-    medicos = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return medicos
