@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CINEVOX</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay">
+    <div class="loader-logo">CINE<span>VOX</span></div>
+    <div class="loader-bar">
+      <div class="loader-bar-fill"></div>
+    </div>
+  </div>
+
+  {% include "partials/navbar.html" %}
+
+  <!-- APP -->
+  <div id="app">
+
+    <!-- ════════════════════════════
+       VIEW: HOME
+  ════════════════════════════ -->
+    <section class="view active" id="view-home">
+      <div class="home-hero">
+        <div class="home-hero-inner">
+          <p class="home-kicker">Cartelera 2025</p>
+          <h1 class="home-title">
+            Ahora<br>en cartelera
+            <em>Elige tu película</em>
+          </h1>
+          <p class="home-sub" id="home-sub-count">— películas disponibles</p>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-pills" id="genre-filters">
+          <button class="filter-pill active" data-genre="all">Todas</button>
+        </div>
+        <span class="movies-count" id="count-display"></span>
+      </div>
+      <div class="movies-grid-home" id="movies-grid"></div>
+    </section>
+
+    <!-- ════════════════════════════
+       VIEW: DETAIL
+  ════════════════════════════ -->
+    {% include "partials/viewDetails.html" %}
+
+    <!-- ════════════════════════════
+       VIEW: SEATS
+  ════════════════════════════ -->
+    {% include "partials/viewSeats.html" %}
+
+    <!-- ════════════════════════════
+       VIEW: CONFIRM
+  ════════════════════════════ -->
+    {% include "partials/viewConfirm.html" %}
+
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+</body>
+<script src="/js/main.js"></script>
+</html>

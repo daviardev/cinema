@@ -1,0 +1,97 @@
+<section class="view" id="view-seats">
+    <div class="seats-layout">
+        <!-- LEFT: Map -->
+        <div class="seat-map-area">
+            <h2 class="seat-view-title" id="seat-movie-title"></h2>
+            <p class="seat-view-sub" id="seat-fn-info"></p>
+
+            <div class="screen-container">
+                <div class="screen-bar"></div>
+                <p class="screen-label">Pantalla</p>
+            </div>
+
+            <div class="seat-legend">
+                <div class="legend-item">
+                    <div class="legend-dot available-std"></div>Estándar
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot available-prm"></div>Premium
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot available-vip"></div>VIP
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot reserved"></div>Reservado
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot selected"></div>Seleccionado
+                </div>
+            </div>
+
+            <div class="seat-grid-wrap">
+                <div class="seat-grid" id="seat-grid"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Booking panel -->
+        <div class="booking-panel">
+            <h3 class="booking-panel-title">Tu reserva</h3>
+
+            <div class="panel-movie" id="panel-movie-info"></div>
+
+            <p class="panel-section-label">Asientos seleccionados</p>
+            <div class="selected-seats-list" id="selected-list">
+                <span class="no-seats-msg">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 8v4m0 4h.01" />
+                    </svg>
+                    Toca un asiento para seleccionarlo
+                </span>
+            </div>
+
+            <div class="price-breakdown" id="price-breakdown">
+                <div class="price-line">
+                    <span>Asientos (<span id="seat-count-label">0</span>)</span>
+                    <span class="price-val" id="subtotal-val">$0.00</span>
+                </div>
+                <div class="price-line">
+                    <span>Cargo por servicio</span>
+                    <span class="price-val" id="fee-val">$0.00</span>
+                </div>
+                <div class="price-line total">
+                    <span>Total</span>
+                    <span class="price-val total-val" id="total-val">$0.00</span>
+                </div>
+            </div>
+            <p class="service-note">* Los precios incluyen impuestos</p>
+
+            <div class="purchase-btn-wrap">
+                <button id="btn-purchase" disabled onclick="purchase()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    Confirmar compra
+                </button>
+            </div>
+            <p class="purchase-legal">Al confirmar aceptas nuestros términos de servicio. Esta transacción es segura y
+                cifrada.</p>
+        </div>
+    </div>
+
+    <!-- MOBILE PURCHASE BAR -->
+    <div class="mobile-purchase-bar" id="mobile-bar">
+        <div class="mobile-bar-top">
+            <div>
+                <div class="mobile-total" id="mobile-total-val">$0.00</div>
+                <div class="mobile-seats-count" id="mobile-seats-label">0 asientos seleccionados</div>
+            </div>
+        </div>
+        <button id="btn-purchase-mobile" disabled onclick="purchase()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Confirmar compra
+        </button>
+    </div>
+</section>

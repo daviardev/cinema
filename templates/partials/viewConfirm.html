@@ -1,0 +1,78 @@
+<section class="view" id="view-confirm">
+    <div class="confirm-inner">
+        <div class="confirm-success">
+            <div class="confirm-icon">✓</div>
+            <h2 class="confirm-headline">¡Compra<br>exitosa!</h2>
+            <p class="confirm-sub">Tu entrada ha sido reservada. Guarda este código.</p>
+        </div>
+
+        <div class="ticket" id="ticket">
+            <div class="ticket-header">
+                <span class="ticket-logo">CINE<span>VOX</span></span>
+                <span class="ticket-type">Entrada Digital</span>
+            </div>
+            <div class="ticket-perf">
+                <div class="ticket-perf-line"></div>
+            </div>
+            <div class="ticket-body">
+                <h3 class="ticket-movie" id="ticket-movie"></h3>
+                <p class="ticket-tagline" id="ticket-tagline"></p>
+                <div class="ticket-grid">
+                    <div class="ticket-field">
+                        <label>Fecha</label>
+                        <div class="val" id="ticket-date"></div>
+                    </div>
+                    <div class="ticket-field">
+                        <label>Hora</label>
+                        <div class="val" id="ticket-time"></div>
+                    </div>
+                    <div class="ticket-field">
+                        <label>Sala</label>
+                        <div class="val val-sm" id="ticket-hall"></div>
+                    </div>
+                    <div class="ticket-field">
+                        <label>Formato</label>
+                        <div class="val val-sm" id="ticket-format"></div>
+                    </div>
+                </div>
+                <div class="ticket-seats">
+                    <label
+                        style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Asientos</label>
+                    <div class="ticket-seat-chips" id="ticket-seats"></div>
+                </div>
+                <div class="ticket-price-row">
+                    <span class="ticket-price-label">Total pagado</span>
+                    <span class="ticket-price-val" id="ticket-price"></span>
+                </div>
+            </div>
+            <div class="ticket-code-area">
+                <div>
+                    <div
+                        style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">
+                        Código de ticket</div>
+                    <div class="ticket-code-text" id="ticket-code"></div>
+                </div>
+                <div class="ticket-barcode" id="barcode"></div>
+            </div>
+        </div>
+
+        <div class="confirm-actions">
+            <button class="btn-home-again" onclick="resetAndGoHome()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                Volver al inicio
+            </button>
+            <button class="btn-print" onclick="window.print()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    style="display:inline">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Imprimir entrada
+            </button>
+        </div>
+    </div>
+</section>

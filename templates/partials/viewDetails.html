@@ -1,0 +1,47 @@
+<section class="view" id="view-detail">
+    <div class="detail-hero">
+        <div class="detail-bg" id="detail-bg"></div>
+        <div class="detail-vignette"></div>
+        <div class="detail-hero-content">
+            <img class="detail-poster" id="detail-poster" src="" alt="" />
+            <div class="detail-info">
+                <div class="detail-genres" id="detail-genres"></div>
+                <h2 class="detail-title" id="detail-title"></h2>
+                <p class="detail-tagline" id="detail-tagline"></p>
+                <div class="detail-meta-row">
+                    <span class="detail-rating" id="detail-rating"></span>
+                    <span class="detail-sep">·</span>
+                    <span id="detail-duration"></span>
+                    <span class="detail-sep">·</span>
+                    <span id="detail-year"></span>
+                    <span class="detail-sep">·</span>
+                    <span id="detail-director"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div>
+                <p class="section-head">Sinopsis</p>
+                <p class="detail-synopsis" id="detail-synopsis"></p>
+                <div class="detail-cast" id="detail-cast"></div>
+                <div class="detail-action">
+                    <button id="btn-to-seats" disabled onclick="goToSeats()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="2" y="7" width="20" height="15" rx="2" />
+                            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+                        </svg>
+                        Seleccionar asientos
+                    </button>
+                </div>
+            </div>
+            <div>
+                <p class="section-head">Funciones disponibles</p>
+                <div id="functions-list"></div>
+            </div>
+        </div>
+    </div>
+</section>
