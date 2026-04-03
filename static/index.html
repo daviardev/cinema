@@ -50,6 +50,19 @@
   </div>
 
   <div class="nav-right">
+    <button id="btn-mytickets-nav" aria-label="Mis entradas" onclick="navigate('mytickets')" class="nav-mytickets-btn" title="Ver mis entradas compradas">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M2 7.5V5a2 2 0 012-2h16a2 2 0 012 2v2.5M2 7.5v9a2 2 0 002 2h16a2 2 0 002-2v-9M2 7.5h20"/>
+        <rect x="4" y="11" width="6" height="6" rx="1"/>
+      </svg>
+      Mis Entradas
+    </button>
+    <button id="btn-validate-nav" aria-label="Validar entrada" onclick="navigate('validate')" class="nav-validate-btn" title="Validar tu entrada">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      Validar
+    </button>
     <div id="cart-chip">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
@@ -83,6 +96,12 @@
       <div class="filter-pills" id="genre-filters">
         <button class="filter-pill active" data-genre="all">Todas</button>
       </div>
+      <input 
+        type="text" 
+        id="movie-search-input" 
+        placeholder="Buscar película..."
+        style="padding: 8px 12px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; color: #fff; font-size: 13px; max-width: 200px;"
+      />
       <span class="movies-count" id="count-display"></span>
     </div>
     <div class="movies-grid-home" id="movies-grid"></div>
@@ -119,6 +138,7 @@
         <div>
           <p class="section-head">Sinopsis</p>
           <p class="detail-synopsis" id="detail-synopsis"></p>
+          <p class="section-head">Actores</p>
           <div class="detail-cast" id="detail-cast"></div>
           <div class="detail-action">
             <button id="btn-to-seats" disabled onclick="goToSeats()">
@@ -300,10 +320,157 @@
     </div>
   </section>
 
+  <!-- ════════════════════════════
+       VIEW: VALIDATE TICKET
+  ════════════════════════════ -->
+  <section class="view" id="view-validate">
+    <div class="validate-inner">
+      <div class="validate-header">
+        <h1 class="validate-title">Verificar Entrada</h1>
+        <p class="validate-sub">Ingresa tu código de ticket para validarlo</p>
+      </div>
+
+      <div class="validate-form-wrapper">
+        <div class="validate-form">
+          <input
+            type="text"
+            id="validate-code-input"
+            class="validate-code-input"
+            placeholder="Ej: XXXXXXXX"
+            maxlength="17"
+            autocomplete="off"
+            oninput="formatTicketCode(this)"
+          />
+          <button class="validate-search-btn" onclick="searchTicket()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            Buscar
+          </button>
+        </div>
+      </div>
+
+      <!-- TICKET NOT FOUND -->
+      <div class="validate-state" id="validate-not-found" style="display: none;">
+        <div class="validate-error">
+          <div class="validate-icon error">⚠️</div>
+          <p class="validate-message">Ticket no encontrado. Verifica el código.</p>
+        </div>
+      </div>
+
+      <!-- TICKET FOUND & DETAILS -->
+      <div class="validate-state" id="validate-found" style="display: none;">
+        <div class="validate-ticket-preview">
+          <div class="validate-ticket-item">
+            <label>Película</label>
+            <div class="val" id="validate-movie"></div>
+          </div>
+          <div class="validate-ticket-item">
+            <label>Fecha y Hora</label>
+            <div class="val" id="validate-datetime"></div>
+          </div>
+          <div class="validate-ticket-item">
+            <label>Sala</label>
+            <div class="val" id="validate-sala"></div>
+          </div>
+          <div class="validate-ticket-item">
+            <label>Asientos</label>
+            <div class="val" id="validate-seats"></div>
+          </div>
+          <div class="validate-ticket-item">
+            <label>Estado</label>
+            <div class="val" id="validate-status"></div>
+          </div>
+        </div>
+
+        <div class="validate-actions">
+          <button id="btn-redeem" class="btn-redeem" onclick="redeemTicket()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Canjear Entrada
+          </button>
+          <button class="btn-back-search" onclick="resetValidateForm()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Buscar otro código
+          </button>
+        </div>
+      </div>
+
+      <!-- TICKET REDEEMED -->
+      <div class="validate-state" id="validate-redeemed" style="display: none;">
+        <div class="validate-success">
+          <div class="validate-icon success">✓</div>
+          <h2>¡Entrada Canjeada!</h2>
+          <p>Tu entrada ha sido validada y activada para ingresar.</p>
+        </div>
+        <button class="btn-home-from-validate" onclick="resetAndGoHome()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          Volver al inicio
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════
+       VIEW: MY TICKETS
+  ════════════════════════════ -->
+  <section class="view" id="view-mytickets">
+    <div id="mytickets-container" style="padding: 20px;"></div>
+  </section>
+
 </div><!-- #app -->
 
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
+
+<!-- FOOTER -->
+<footer id="app-footer" style="background: #0a0a0a; border-top: 1px solid #222; padding: 40px 20px; margin-top: 60px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; margin-bottom: 40px; color: #aaa; font-size: 13px;">
+      
+      <div>
+        <p style="color: #fff; font-weight: bold; margin: 0 0 15px 0; font-size: 14px;">CINEVOX</p>
+        <p style="margin: 0 0 12px 0; line-height: 1.6;">
+          Plataforma de compra de entradas de cine online. Compra desde casa y disfruta del mejor entretenimiento.
+        </p>
+      </div>
+      
+      <div>
+        <p style="color: #fff; font-weight: bold; margin: 0 0 15px 0; font-size: 14px;">CONTACTO</p>
+        <p style="margin: 0 0 8px 0;">
+          📞 +57 (1) 555-0100
+        </p>
+        <p style="margin: 0 0 8px 0;">
+          ✉️ info@cinevox.com
+        </p>
+        <p style="margin: 0;">
+          📍 Bogotá, Colombia
+        </p>
+      </div>
+      
+      <div>
+        <p style="color: #fff; font-weight: bold; margin: 0 0 15px 0; font-size: 14px;">HORARIOS</p>
+        <p style="margin: 0 0 8px 0;">
+          Lun - Dom: 10:00 - 23:00
+        </p>
+        <p style="margin: 0;">
+          Domingos especiales: 09:00 - 23:00
+        </p>
+      </div>
+      
+    </div>
+    
+    <div style="border-top: 1px solid #222; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
+      <p style="margin: 0;">© 2026 CINEVOX. Todos los derechos reservados.</p>
+      <p style="margin: 5px 0 0 0;">Plataforma de reserva y compra de entradas de cine</p>
+    </div>
+  </div>
+</footer>
 </body>
 <script type="module" src="js/main.js"></script>
 </html>

@@ -9,6 +9,8 @@
     href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -44,6 +46,12 @@
         <div class="filter-pills" id="genre-filters">
           <button class="filter-pill active" data-genre="all">Todas</button>
         </div>
+        <input 
+          type="text" 
+          id="movie-search-input" 
+          placeholder="Buscar película..."
+          style="padding: 8px 12px; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; color: #fff; font-size: 13px; max-width: 200px;"
+        />
         <span class="movies-count" id="count-display"></span>
       </div>
       <div class="movies-grid-home" id="movies-grid"></div>
@@ -64,10 +72,22 @@
   ════════════════════════════ -->
     {% include "partials/viewConfirm.html" %}
 
+    <!-- ════════════════════════════
+       VIEW: VALIDATE TICKET
+  ════════════════════════════ -->
+    {% include "partials/viewValidate.html" %}
+
+    <!-- ════════════════════════════
+       VIEW: MY TICKETS
+  ════════════════════════════ -->
+    {% include "partials/viewMyTickets.html" %}
+
   </div>
 
   <!-- TOAST CONTAINER -->
   <div id="toast-container"></div>
+
+  {% include "partials/footer.html" %}
 </body>
 <script src="/js/main.js"></script>
 </html>

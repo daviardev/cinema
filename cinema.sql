@@ -89,7 +89,7 @@ CREATE TABLE `detalle_tiquete` (
   CONSTRAINT `detalle_tiquete_ibfk_1` FOREIGN KEY (`tiquete_id`) REFERENCES `tiquetes` (`id`),
   CONSTRAINT `detalle_tiquete_ibfk_2` FOREIGN KEY (`asiento_id`) REFERENCES `asientos` (`id`),
   CONSTRAINT `detalle_tiquete_ibfk_3` FOREIGN KEY (`funcion_id`) REFERENCES `funciones` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -98,6 +98,7 @@ CREATE TABLE `detalle_tiquete` (
 
 LOCK TABLES `detalle_tiquete` WRITE;
 /*!40000 ALTER TABLE `detalle_tiquete` DISABLE KEYS */;
+INSERT INTO `detalle_tiquete` VALUES (1,1,15,8),(2,1,5,8),(3,1,10,8),(4,2,4,2);
 /*!40000 ALTER TABLE `detalle_tiquete` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -120,7 +121,7 @@ CREATE TABLE `funciones` (
   PRIMARY KEY (`id`),
   KEY `pelicula_id` (`pelicula_id`),
   CONSTRAINT `funciones_ibfk_1` FOREIGN KEY (`pelicula_id`) REFERENCES `peliculas` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -129,6 +130,7 @@ CREATE TABLE `funciones` (
 
 LOCK TABLES `funciones` WRITE;
 /*!40000 ALTER TABLE `funciones` DISABLE KEYS */;
+INSERT INTO `funciones` VALUES (1,1,'2026-03-31','14:30:00',18.50,'disponible','Sala IMAX','IMAX 4K'),(2,1,'2026-03-31','17:15:00',15.00,'disponible','Sala Premium','Dolby Vision'),(3,1,'2026-03-31','20:00:00',12.50,'disponible','Sala 3','2D Digital'),(4,1,'2026-03-31','22:30:00',12.50,'disponible','Sala 5','2D Digital'),(5,1,'2026-04-01','16:00:00',18.50,'disponible','Sala IMAX','IMAX 4K'),(6,1,'2026-04-01','18:45:00',15.00,'disponible','Sala Premium','Dolby Vision'),(7,1,'2026-04-01','21:30:00',12.50,'disponible','Sala 2','2D Digital'),(8,1,'2026-04-02','15:00:00',15.00,'disponible','Sala Premium','Dolby Vision'),(9,1,'2026-04-02','18:00:00',18.50,'disponible','Sala IMAX','IMAX 4K'),(10,1,'2026-04-02','20:45:00',12.50,'disponible','Sala 4','2D Digital');
 /*!40000 ALTER TABLE `funciones` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -261,7 +263,7 @@ CREATE TABLE `reservas_temporales` (
   KEY `asiento_id` (`asiento_id`),
   CONSTRAINT `reservas_temporales_ibfk_1` FOREIGN KEY (`funcion_id`) REFERENCES `funciones` (`id`),
   CONSTRAINT `reservas_temporales_ibfk_2` FOREIGN KEY (`asiento_id`) REFERENCES `asientos` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -270,6 +272,7 @@ CREATE TABLE `reservas_temporales` (
 
 LOCK TABLES `reservas_temporales` WRITE;
 /*!40000 ALTER TABLE `reservas_temporales` DISABLE KEYS */;
+INSERT INTO `reservas_temporales` VALUES (15,1,10,'2026-04-01 02:49:24'),(16,1,2,'2026-04-01 02:50:00'),(17,2,10,'2026-04-01 15:33:08'),(20,3,4,'2026-04-01 18:29:07'),(21,2,5,'2026-04-01 18:40:20'),(22,3,14,'2026-04-01 19:02:57'),(23,5,4,'2026-04-01 19:06:34'),(24,5,15,'2026-04-01 19:10:30'),(25,5,5,'2026-04-01 19:36:08'),(29,3,7,'2026-04-01 20:21:38'),(43,1,8,'2026-04-01 20:43:17');
 /*!40000 ALTER TABLE `reservas_temporales` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -318,7 +321,7 @@ CREATE TABLE `tiquetes` (
   UNIQUE KEY `codigo` (`codigo`),
   KEY `funcion_id` (`funcion_id`),
   CONSTRAINT `tiquetes_ibfk_1` FOREIGN KEY (`funcion_id`) REFERENCES `funciones` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -327,6 +330,7 @@ CREATE TABLE `tiquetes` (
 
 LOCK TABLES `tiquetes` WRITE;
 /*!40000 ALTER TABLE `tiquetes` DISABLE KEYS */;
+INSERT INTO `tiquetes` VALUES (1,'TKT-4890-YZM30',8,'dev.daviar@gmail.com',46.00,'activo','2026-04-01 19:30:13'),(2,'TKT-9128-WQW48',2,'dsadsa@dsa.dsa',12.50,'activo','2026-04-01 20:14:42');
 /*!40000 ALTER TABLE `tiquetes` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -339,4 +343,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-31 17:14:03
+-- Dump completed on 2026-04-02 21:15:06

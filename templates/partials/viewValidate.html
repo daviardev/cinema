@@ -1,0 +1,110 @@
+<section class="view" id="view-validate">
+  <div class="validate-inner">
+    <div class="validate-header">
+      <h1 class="validate-title">Verificar Entrada</h1>
+      <p class="validate-sub">Ingresa tu código de ticket para validarlo</p>
+    </div>
+
+    <div class="validate-form-wrapper">
+      <div class="validate-form">
+        <input
+          type="text"
+          id="validate-code-input"
+          class="validate-code-input"
+          placeholder="Ej: 6956ZHD14"
+          maxlength="20"
+          autocomplete="off"
+        />
+        <button class="validate-search-btn" onclick="searchTicket()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          Buscar
+        </button>
+      </div>
+      <button class="validate-qr-btn" onclick="toggleQRScanner()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Escanear QR
+      </button>
+    </div>
+
+    <!-- QR SCANNER -->
+    <div class="qr-scanner-container" id="qr-scanner-container" style="display: none;">
+      <div class="qr-scanner-overlay">
+        <div class="qr-scanner-header">
+          <h3>Escanear Código QR</h3>
+          <button class="qr-scanner-close" onclick="toggleQRScanner()">✕</button>
+        </div>
+        <video id="qr-scanner-video" class="qr-scanner-video"></video>
+        <div class="qr-scanner-frame"></div>
+        <p class="qr-scanner-hint">Apunta la cámara al código QR del ticket</p>
+      </div>
+    </div>
+
+    <!-- TICKET NOT FOUND -->
+    <div class="validate-state" id="validate-not-found" style="display: none;">
+      <div class="validate-error">
+        <div class="validate-icon error">⚠️</div>
+        <p class="validate-message">Ticket no encontrado. Verifica el código.</p>
+      </div>
+    </div>
+
+    <!-- TICKET FOUND & DETAILS -->
+    <div class="validate-state" id="validate-found" style="display: none;">
+      <div class="validate-ticket-preview">
+        <div class="validate-ticket-item">
+          <label>Película</label>
+          <div class="val" id="validate-movie"></div>
+        </div>
+        <div class="validate-ticket-item">
+          <label>Fecha y Hora</label>
+          <div class="val" id="validate-datetime"></div>
+        </div>
+        <div class="validate-ticket-item">
+          <label>Sala</label>
+          <div class="val" id="validate-sala"></div>
+        </div>
+        <div class="validate-ticket-item">
+          <label>Asientos</label>
+          <div class="val" id="validate-seats"></div>
+        </div>
+        <div class="validate-ticket-item">
+          <label>Estado</label>
+          <div class="val" id="validate-status"></div>
+        </div>
+      </div>
+
+      <div class="validate-actions">
+        <button id="btn-redeem" class="btn-redeem" onclick="redeemTicket()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Canjear Entrada
+        </button>
+        <button class="btn-back-search" onclick="resetValidateForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Buscar otro código
+        </button>
+      </div>
+    </div>
+
+    <!-- TICKET REDEEMED -->
+    <div class="validate-state" id="validate-redeemed" style="display: none;">
+      <div class="validate-success">
+        <div class="validate-icon success">✓</div>
+        <h2>¡Entrada Canjeada!</h2>
+        <p>Tu entrada ha sido validada y activada para ingresar.</p>
+      </div>
+      <button class="btn-home-from-validate" onclick="resetAndGoHome()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Volver al inicio
+      </button>
+    </div>
+  </div>
+</section>
