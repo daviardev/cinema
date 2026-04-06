@@ -699,6 +699,7 @@ function renderMovieCards() {
           <span class="card-rating">★ ${m.rating}</span>
           <span>${m.duration} min</span>
           <span>${m.year}</span>
+          ${m.clasificacion ? `<span class="card-rating-age">${m.clasificacion}</span>` : ""}
         </div>
         <div class="card-cta">
           Ver funciones
@@ -743,6 +744,8 @@ function renderDetail() {
   document.getElementById("detail-duration").textContent =
     movie.duration + " min";
   document.getElementById("detail-year").textContent = movie.year;
+  document.getElementById("detail-clasificacion").textContent =
+    movie.clasificacion || "SIN CLASIFICAR";
   document.getElementById("detail-director").textContent =
     "Dir. " + movie.director;
   document.getElementById("detail-rating").textContent = "★ " + movie.rating;
