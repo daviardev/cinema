@@ -1,0 +1,103 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Editar Función - Cinema Admin{% endblock %}
+{% block page_title %}Editar Función{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card stats-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-edit text-warning me-2"></i>Editar Función</h5>
+            </div>
+            <div class="card-body">
+                <form id="funcionForm" method="post">
+                    <div class="mb-3">
+                        <label for="pelicula_id" class="form-label">Película *</label>
+                        <select class="form-select" id="pelicula_id" name="pelicula_id" required>
+                            <option value="">Seleccionar película...</option>
+                            {% for pelicula in peliculas %}
+                            <option value="{{ pelicula.id }}" {% if funcion.pelicula_id == pelicula.id %}selected{% endif %}>{{ pelicula.titulo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha" class="form-label">Fecha *</label>
+                            <input type="date" class="form-control" id="fecha" name="fecha" value="{{ funcion.fecha|strftime('%Y-%m-%d') if funcion.fecha else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="hora" class="form-label">Hora *</label>
+                            <input type="time" class="form-control" id="hora" name="hora" value="{{ funcion.hora|strftime('%H:%M') if funcion.hora else '' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sala" class="form-label">Sala</label>
+                            <input type="text" class="form-control" id="sala" name="sala" value="{{ funcion.sala or '' }}" placeholder="Ej: Sala IMAX">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tecnologia" class="form-label">Tecnología</label>
+                            <select class="form-select" id="tecnologia" name="tecnologia">
+                                <option value="">Seleccionar...</option>
+                                <option value="2D Digital" {% if funcion.tecnologia == '2D Digital' %}selected{% endif %}>2D Digital</option>
+                                <option value="3D" {% if funcion.tecnologia == '3D' %}selected{% endif %}>3D</option>
+                                <option value="IMAX 4K" {% if funcion.tecnologia == 'IMAX 4K' %}selected{% endif %}>IMAX 4K</option>
+                                <option value="Dolby Vision" {% if funcion.tecnologia == 'Dolby Vision' %}selected{% endif %}>Dolby Vision</option>
+                                <option value="4DX" {% if funcion.tecnologia == '4DX' %}selected{% endif %}>4DX</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="precio" name="precio" min="0" step="0.01" value="{{ funcion.precio }}" required>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Actualizar Función
+                        </button>
+                        <a href="{{ url_for('admin_funciones') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('funcionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Función actualizada exitosamente');
+            window.location.href = '{{ url_for("admin_funciones") }}';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al actualizar la función');
+    });
+});
+</script>
+{% endblock %}

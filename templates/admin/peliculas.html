@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Películas - Cinema Admin{% endblock %}
+{% block page_title %}Gestión de Películas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-film text-primary me-2"></i>Películas</h2>
+    <a href="{{ url_for('admin_crear_pelicula') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Agregar Película
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover mb-0">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Duración</th>
+                <th>Clasificación</th>
+                <th>Año</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pelicula in peliculas %}
+            <tr>
+                <td>{{ pelicula.id }}</td>
+                <td>
+                    <strong>{{ pelicula.titulo }}</strong>
+                    <br><small class="text-muted">{{ pelicula.director or 'Sin director' }}</small>
+                </td>
+                <td>{{ pelicula.duracion }} min</td>
+                <td>
+                    <span class="badge bg-{{ 'success' if pelicula.clasificacion == 'PG-13' else 'warning' if pelicula.clasificacion == 'PG-7' else 'secondary' }}">
+                        {{ pelicula.clasificacion }}
+                    </span>
+                </td>
+                <td>{{ pelicula.anio }}</td>
+                <td>
+                    <span class="badge bg-{{ 'success' if pelicula.estado == 'activa' else 'secondary' }}">
+                        {{ pelicula.estado.title() }}
+                    </span>
+                </td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_editar_pelicula', id=pelicula.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarPelicula({{ pelicula.id }}, '{{ pelicula.titulo }}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if not peliculas %}
+<div class="text-center mt-5">
+    <i class="fas fa-film fa-3x text-muted mb-3"></i>
+    <h4 class="text-muted">No hay películas registradas</h4>
+    <p class="text-muted">Comienza agregando tu primera película</p>
+    <a href="{{ url_for('admin_crear_pelicula') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Agregar Primera Película
+    </a>
+</div>
+{% endif %}
+
+<!-- Modal de Confirmación de Eliminación -->
+<div class="modal fade" id="eliminarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar la película <strong id="peliculaNombre"></strong>?</p>
+                <p class="text-danger small">Esta acción no se puede deshacer y eliminará también todas las funciones asociadas.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmarEliminar">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function eliminarPelicula(id, nombre) {
+    document.getElementById('peliculaNombre').textContent = nombre;
+    document.getElementById('confirmarEliminar').onclick = function() {
+        fetch(`/admin/peliculas/eliminar/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar la película');
+        });
+    };
+    new bootstrap.Modal(document.getElementById('eliminarModal')).show();
+}
+</script>
+{% endblock %}

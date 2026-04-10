@@ -1,0 +1,118 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Cinema Admin{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">{{ stats.total_peliculas }}</h5>
+                        <p class="card-text">Películas</p>
+                    </div>
+                    <i class="fas fa-film fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">{{ stats.total_funciones }}</h5>
+                        <p class="card-text">Funciones</p>
+                    </div>
+                    <i class="fas fa-calendar fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">{{ stats.total_tickets }}</h5>
+                        <p class="card-text">Tickets Vendidos</p>
+                    </div>
+                    <i class="fas fa-ticket-alt fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">${{ "%.2f"|format(stats.total_ingresos) }}</h5>
+                        <p class="card-text">Ingresos Totales</p>
+                    </div>
+                    <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card stats-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-check-circle text-success me-2"></i>Tickets Canjeados Hoy</h5>
+            </div>
+            <div class="card-body">
+                <h2 class="text-success">{{ stats.tickets_canjeados_hoy }}</h2>
+                <p class="text-muted mb-0">Tickets validados en el día de hoy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stats-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cog text-primary me-2"></i>Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin_crear_pelicula') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Agregar Película
+                    </a>
+                    <a href="{{ url_for('admin_crear_funcion') }}" class="btn btn-success">
+                        <i class="fas fa-calendar-plus me-2"></i>Crear Función
+                    </a>
+                    <a href="{{ url_for('admin_peliculas') }}" class="btn btn-info">
+                        <i class="fas fa-list me-2"></i>Ver Todas las Películas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card stats-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle text-info me-2"></i>Información del Sistema</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Versión del Sistema:</strong> Cinema v1.0
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Base de Datos:</strong> MySQL
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Última Actualización:</strong> {{ now|strftime("%d/%m/%Y %H:%M") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

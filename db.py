@@ -407,3 +407,539 @@ def send_ticket_email(email, codigo, pelicula_titulo, funcion_data, asientos_lis
     except Exception as e:
         print(f"Error sending email: {e}")
         return False
+
+# ==========================================
+# FUNCIONES PARA DASHBOARD ADMINISTRATIVO
+# ==========================================
+
+def get_dashboard_stats():
+    """Obtener estadísticas para el dashboard"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    stats = {}
+    
+    # Total películas
+    cursor.execute("SELECT COUNT(*) as total FROM peliculas")
+    stats['total_peliculas'] = cursor.fetchone()['total']
+    
+    # Total funciones
+    cursor.execute("SELECT COUNT(*) as total FROM funciones")
+    stats['total_funciones'] = cursor.fetchone()['total']
+    
+    # Total tickets vendidos
+    cursor.execute("SELECT COUNT(*) as total FROM tiquetes WHERE estado = 'activo'")
+    stats['total_tickets'] = cursor.fetchone()['total']
+    
+    # Ingresos totales
+    cursor.execute("SELECT SUM(total) as total FROM tiquetes WHERE estado = 'activo'")
+    result = cursor.fetchone()
+    stats['total_ingresos'] = float(result['total'] or 0)
+    
+    # Tickets canjeados hoy
+    cursor.execute("""
+        SELECT COUNT(*) as total 
+        FROM tiquetes 
+        WHERE estado = 'canjeado' 
+        AND DATE(fecha_compra) = CURDATE()
+    """)
+    stats['tickets_canjeados_hoy'] = cursor.fetchone()['total']
+    
+    cursor.close()
+    conn.close()
+    return stats
+
+def get_all_peliculas():
+    """Obtener todas las películas con detalles completos"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+        SELECT 
+            p.*,
+            GROUP_CONCAT(DISTINCT g.nombre ORDER BY g.nombre SEPARATOR ', ') AS generos,
+            GROUP_CONCAT(DISTINCT a.nombre ORDER BY a.nombre SEPARATOR ', ') AS actores
+        FROM peliculas p
+        LEFT JOIN pelicula_generos pg ON p.id = pg.pelicula_id
+        LEFT JOIN generos g ON pg.genero_id = g.id
+        LEFT JOIN pelicula_actores pa ON p.id = pa.pelicula_id
+        LEFT JOIN actores a ON pa.actor_id = a.id
+        GROUP BY p.id
+        ORDER BY p.id DESC
+    """
+    
+    cursor.execute(query)
+    peliculas = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return peliculas
+
+def get_pelicula_by_id(pelicula_id):
+    """Obtener una película por ID con sus géneros y actores"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Obtener película
+    cursor.execute("SELECT * FROM peliculas WHERE id = %s", (pelicula_id,))
+    pelicula = cursor.fetchone()
+    
+    if pelicula:
+        # Obtener géneros
+        cursor.execute("""
+            SELECT g.id, g.nombre 
+            FROM generos g 
+            JOIN pelicula_generos pg ON g.id = pg.genero_id 
+            WHERE pg.pelicula_id = %s
+        """, (pelicula_id,))
+        pelicula['generos'] = cursor.fetchall()
+        
+        # Obtener actores
+        cursor.execute("""
+            SELECT a.id, a.nombre 
+            FROM actores a 
+            JOIN pelicula_actores pa ON a.id = pa.actor_id 
+            WHERE pa.pelicula_id = %s
+        """, (pelicula_id,))
+        pelicula['actores'] = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return pelicula
+
+def create_pelicula(titulo, descripcion, duracion, clasificacion, imagen_url, anio, director, puntuacion, generos=None, actores=None):
+    """Crear una nueva película"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO peliculas (titulo, descripcion, duracion, clasificacion, imagen_url, anio, director, puntuacion, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'activa')
+        """, (titulo, descripcion, duracion, clasificacion, imagen_url, anio, director, puntuacion))
+        
+        pelicula_id = cursor.lastrowid
+        
+        # Agregar géneros
+        if generos:
+            for genero_id in generos:
+                cursor.execute("INSERT INTO pelicula_generos (pelicula_id, genero_id) VALUES (%s, %s)", (pelicula_id, genero_id))
+        
+        # Agregar actores
+        if actores:
+            for actor_id in actores:
+                cursor.execute("INSERT INTO pelicula_actores (pelicula_id, actor_id) VALUES (%s, %s)", (pelicula_id, actor_id))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_pelicula(pelicula_id, titulo, descripcion, duracion, clasificacion, imagen_url, anio, director, puntuacion, generos=None, actores=None):
+    """Actualizar una película"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE peliculas 
+            SET titulo=%s, descripcion=%s, duracion=%s, clasificacion=%s, imagen_url=%s, 
+                anio=%s, director=%s, puntuacion=%s
+            WHERE id=%s
+        """, (titulo, descripcion, duracion, clasificacion, imagen_url, anio, director, puntuacion, pelicula_id))
+        
+        # Eliminar géneros existentes
+        cursor.execute("DELETE FROM pelicula_generos WHERE pelicula_id = %s", (pelicula_id,))
+        
+        # Agregar géneros nuevos
+        if generos:
+            for genero_id in generos:
+                cursor.execute("INSERT INTO pelicula_generos (pelicula_id, genero_id) VALUES (%s, %s)", (pelicula_id, genero_id))
+        
+        # Eliminar actores existentes
+        cursor.execute("DELETE FROM pelicula_actores WHERE pelicula_id = %s", (pelicula_id,))
+        
+        # Agregar actores nuevos
+        if actores:
+            for actor_id in actores:
+                cursor.execute("INSERT INTO pelicula_actores (pelicula_id, actor_id) VALUES (%s, %s)", (pelicula_id, actor_id))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_pelicula(pelicula_id):
+    """Eliminar una película"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Eliminar relaciones primero
+        cursor.execute("DELETE FROM pelicula_generos WHERE pelicula_id = %s", (pelicula_id,))
+        cursor.execute("DELETE FROM pelicula_actores WHERE pelicula_id = %s", (pelicula_id,))
+        cursor.execute("DELETE FROM funciones WHERE pelicula_id = %s", (pelicula_id,))
+        
+        # Eliminar película
+        cursor.execute("DELETE FROM peliculas WHERE id = %s", (pelicula_id,))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_funciones():
+    """Obtener todas las funciones con detalles"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+        SELECT f.*, p.titulo as pelicula_titulo
+        FROM funciones f
+        JOIN peliculas p ON f.pelicula_id = p.id
+        ORDER BY f.fecha DESC, f.hora DESC
+    """
+    
+    cursor.execute(query)
+    funciones = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return funciones
+
+def get_funcion_by_id(funcion_id):
+    """Obtener una función por ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT f.*, p.titulo as pelicula_titulo
+        FROM funciones f
+        JOIN peliculas p ON f.pelicula_id = p.id
+        WHERE f.id = %s
+    """, (funcion_id,))
+    
+    funcion = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return funcion
+
+def create_funcion(pelicula_id, fecha, hora, precio, sala, tecnologia):
+    """Crear una nueva función"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO funciones (pelicula_id, fecha, hora, precio, sala, tecnologia, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, 'disponible')
+        """, (pelicula_id, fecha, hora, precio, sala, tecnologia))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_funcion(funcion_id, pelicula_id, fecha, hora, precio, sala, tecnologia):
+    """Actualizar una función"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE funciones 
+            SET pelicula_id=%s, fecha=%s, hora=%s, precio=%s, sala=%s, tecnologia=%s
+            WHERE id=%s
+        """, (pelicula_id, fecha, hora, precio, sala, tecnologia, funcion_id))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_funcion(funcion_id):
+    """Eliminar una función"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM funciones WHERE id = %s", (funcion_id,))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_generos():
+    """Obtener todos los géneros"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM generos ORDER BY nombre")
+    generos = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return generos
+
+def get_genero_by_id(genero_id):
+    """Obtener un género por ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM generos WHERE id = %s", (genero_id,))
+    genero = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return genero
+
+def create_genero(nombre):
+    """Crear un nuevo género"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("INSERT INTO generos (nombre) VALUES (%s)", (nombre,))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_genero(genero_id, nombre):
+    """Actualizar un género"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("UPDATE generos SET nombre=%s WHERE id=%s", (nombre, genero_id))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_genero(genero_id):
+    """Eliminar un género"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM generos WHERE id = %s", (genero_id,))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_actores():
+    """Obtener todos los actores"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM actores ORDER BY nombre")
+    actores = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return actores
+
+def get_actor_by_id(actor_id):
+    """Obtener un actor por ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM actores WHERE id = %s", (actor_id,))
+    actor = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return actor
+
+def create_actor(nombre):
+    """Crear un nuevo actor"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("INSERT INTO actores (nombre) VALUES (%s)", (nombre,))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_actor(actor_id, nombre):
+    """Actualizar un actor"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("UPDATE actores SET nombre=%s WHERE id=%s", (nombre, actor_id))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_actor(actor_id):
+    """Eliminar un actor"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM actores WHERE id = %s", (actor_id,))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_asientos():
+    """Obtener todos los asientos con detalles"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+        SELECT a.*, ta.nombre as tipo_nombre, ta.precio as tipo_precio
+        FROM asientos a
+        JOIN tipos_asientos ta ON a.tipo_id = ta.id
+        ORDER BY a.fila, a.columna
+    """
+    
+    cursor.execute(query)
+    asientos = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return asientos
+
+def get_asiento_by_id(asiento_id):
+    """Obtener un asiento por ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT a.*, ta.nombre as tipo_nombre, ta.precio as tipo_precio
+        FROM asientos a
+        JOIN tipos_asientos ta ON a.tipo_id = ta.id
+        WHERE a.id = %s
+    """, (asiento_id,))
+    
+    asiento = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return asiento
+
+def get_tipos_asientos():
+    """Obtener todos los tipos de asientos"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT * FROM tipos_asientos ORDER BY nombre")
+    tipos = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    return tipos
+
+def create_asiento(numero, fila, columna, tipo_id):
+    """Crear un nuevo asiento"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            INSERT INTO asientos (numero, fila, columna, tipo_id)
+            VALUES (%s, %s, %s, %s)
+        """, (numero, fila, columna, tipo_id))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_asiento(asiento_id, numero, fila, columna, tipo_id):
+    """Actualizar un asiento"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE asientos 
+            SET numero=%s, fila=%s, columna=%s, tipo_id=%s
+            WHERE id=%s
+        """, (numero, fila, columna, tipo_id, asiento_id))
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_asiento(asiento_id):
+    """Eliminar un asiento"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM asientos WHERE id = %s", (asiento_id,))
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()

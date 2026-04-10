@@ -1,0 +1,132 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Crear Película - Cinema Admin{% endblock %}
+{% block page_title %}Crear Nueva Película{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card stats-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus text-success me-2"></i>Información de la Película</h5>
+            </div>
+            <div class="card-body">
+                <form id="peliculaForm" method="post">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="titulo" class="form-label">Título *</label>
+                            <input type="text" class="form-control" id="titulo" name="titulo" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="anio" class="form-label">Año *</label>
+                            <input type="number" class="form-control" id="anio" name="anio" min="1900" max="2030" value="2026" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="director" class="form-label">Director</label>
+                        <input type="text" class="form-control" id="director" name="director">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="duracion" class="form-label">Duración (minutos) *</label>
+                            <input type="number" class="form-control" id="duracion" name="duracion" min="1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="clasificacion" class="form-label">Clasificación *</label>
+                            <select class="form-select" id="clasificacion" name="clasificacion" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="PG-7">PG-7</option>
+                                <option value="PG-13">PG-13</option>
+                                <option value="R">R</option>
+                                <option value="NC-17">NC-17</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="puntuacion" class="form-label">Puntuación</label>
+                            <input type="number" class="form-control" id="puntuacion" name="puntuacion" min="0" max="10" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="imagen_url" class="form-label">URL de Imagen</label>
+                        <input type="url" class="form-control" id="imagen_url" name="imagen_url" placeholder="https://...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción *</label>
+                        <textarea class="form-control" id="descripcion" name="descripcion" rows="4" required></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Géneros</label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                {% for genero in generos %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="generos" value="{{ genero.id }}" id="genero{{ genero.id }}">
+                                    <label class="form-check-label" for="genero{{ genero.id }}">
+                                        {{ genero.nombre }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Actores</label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                {% for actor in actores %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="actores" value="{{ actor.id }}" id="actor{{ actor.id }}">
+                                    <label class="form-check-label" for="actor{{ actor.id }}">
+                                        {{ actor.nombre }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Guardar Película
+                        </button>
+                        <a href="{{ url_for('admin_peliculas') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('peliculaForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Película creada exitosamente');
+            window.location.href = '{{ url_for("admin_peliculas") }}';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al crear la película');
+    });
+});
+</script>
+{% endblock %}
