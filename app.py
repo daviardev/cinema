@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from flask_mail import Mail
 from datetime import timedelta
 from functools import wraps
+import os
 from config import (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, 
                     MAIL_SERVER, MAIL_PORT, MAIL_USE_TLS, MAIL_USERNAME, MAIL_PASSWORD, EMAIL_DEFAULT_SENDER)
 
@@ -19,15 +20,20 @@ from db import (get_db_connection, get_peliculas_cartelera, get_funciones_por_pe
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
-# Configurar secret key para sesiones
-app.secret_key = 'tu_clave_secreta_super_secret_cinema_vox_2025'  # Cambiar en producción a variable de entorno
+# Detectar entorno (production vs development)
+FLASK_ENV = os.getenv('FLASK_ENV', 'development')
+IS_PRODUCTION = FLASK_ENV == 'production'
 
-# Configuración de sesión
+# Configurar secret key (desde variable de entorno o fallback)
+app.secret_key = os.getenv('SECRET_KEY', 'tu_clave_secreta_super_secret_cinema_vox_2025_dev')
+
+# Configuración de sesión (optimizada para Railway)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=4)
-app.config['SESSION_COOKIE_SECURE'] = False  # True en producción
+app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION  # True en Railway (HTTPS), False en localhost
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+app.config['PROPAGATE_EXCEPTIONS'] = True
 
 @app.before_request
 def make_session_permanent():
