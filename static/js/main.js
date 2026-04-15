@@ -586,7 +586,9 @@ function renderHome() {
   }
 
   // Cargar películas desde la API
-  fetch("/api/peliculas")
+  fetch("/api/peliculas", {
+    credentials: "include",
+  })
     .then((response) => response.json())
     .then((data) => {
       // Mapear datos de la API al formato esperado
@@ -770,11 +772,21 @@ function renderDetail() {
 function renderFunctions(movieId) {
   const container = document.getElementById("functions-list");
 
+  console.log(`📽️ Loading functions for movie ID: ${movieId}`);
+
   // Cargar funciones desde la API
-  fetch(`/api/funciones/${movieId}`)
-    .then((response) => response.json())
+  fetch(`/api/funciones/${movieId}`, {
+    credentials: "include",
+  })
+    .then((response) => {
+      console.log("Response status:", response.status);
+      return response.json();
+    })
     .then((data) => {
+      console.log("Functions data received:", data);
+
       if (!data || data.length === 0) {
+        console.warn("⚠️ No functions available for this movie");
         container.innerHTML =
           '<p class="text-muted" style="font-size:13px;">No hay funciones disponibles</p>';
         return;
@@ -923,7 +935,9 @@ function pollSeatUpdates() {
   const fn = state.selectedFunction;
   if (!fn) return;
 
-  fetch(`/api/asientos/${fn.id}`)
+  fetch(`/api/asientos/${fn.id}`, {
+    credentials: "include",
+  })
     .then((res) => res.json())
     .then((data) => {
       const newSeatMap = data.map((a) => ({
@@ -969,7 +983,9 @@ function pollSeatUpdates() {
 // Deterministic seat reservation based on functionId
 async function generateSeatMap(functionId) {
   try {
-    const response = await fetch(`/api/asientos/${functionId}`);
+    const response = await fetch(`/api/asientos/${functionId}`, {
+      credentials: "include",
+    });
     const data = await response.json();
 
     // Mapear datos de la API a formato esperado
@@ -1045,6 +1061,7 @@ function toggleSeat(seatId) {
   fetch("/api/reserva-temporal/crear", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({
       funcion_id: fn.id,
       asiento_id: numSeatId,
@@ -1102,6 +1119,7 @@ function removeSeat(seatId) {
     fetch("/api/reserva-temporal/limpiar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         funcion_id: fn.id,
         asiento_id: numSeatId,
@@ -1521,6 +1539,118 @@ function proceedToEmailModal() {
 function openEmailModal() {
   console.log("openEmailModal called");
 
+  // Obtener datos de autenticación completos
+  getAuthData().then((authData) => {
+    if (!authData || !authData.authenticated) {
+      console.log("❌ Usuario no autenticado, pidiendo login/registro");
+      // Guardar estado de compra en localStorage
+      const compraState = {
+        selectedMovie: state.selectedMovie,
+        selectedFunction: state.selectedFunction,
+        selectedSeats: state.selectedSeats,
+        ticketCode: state.ticketCode,
+      };
+      localStorage.setItem("compra_pendiente", JSON.stringify(compraState));
+
+      // Mostrar modal de login/registro
+      showAuthRequiredModal();
+      return;
+    }
+
+    // Usuario está autenticado
+    console.log("✓ Usuario autenticado:", authData.user_name);
+
+    if (authData.user_email) {
+      // Tenemos el email del usuario, procesar compra directamente sin modal
+      console.log(
+        "📧 Usando email del usuario autenticado:",
+        authData.user_email,
+      );
+      confirmPurchaseWithEmail(authData.user_email);
+    } else {
+      // Como fallback, abrir modal de email normal
+      console.log("⚠️  No hay email en authData, abriendo modal");
+      openEmailModalForAuthenticated();
+    }
+  });
+}
+
+// Obtener datos de autenticación completos (incluyendo email)
+async function getAuthData() {
+  return checkAuthStatus();
+}
+
+function showAuthRequiredModal() {
+  // Remover modal existente si la hay
+  const existingModal = document.getElementById("auth-required-modal");
+  if (existingModal) existingModal.remove();
+
+  const modalHtml = `
+    <div id="auth-required-modal" class="auth-required-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10001;">
+      <div style="background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 30px; max-width: 400px; width: 90%; text-align: center;">
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 48px; margin-bottom: 15px;">🔐</div>
+          <h2 style="margin: 0 0 10px 0; color: #fff; font-size: 20px;">Inicia sesión para continuar</h2>
+          <p style="color: #aaa; margin: 0; font-size: 14px;">Para completar tu compra, debes estar registrado</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
+          <button onclick="goToLogin()" style="width: 100%; padding: 14px; background: #9580e0; border: none; border-radius: 4px; color: #000; font-weight: bold; cursor: pointer; font-size: 14px;">
+            Iniciar Sesión
+          </button>
+          <button onclick="goToRegistro()" style="width: 100%; padding: 14px; background: #333; border: 1px solid #444; border-radius: 4px; color: #fff; cursor: pointer; font-size: 14px;">
+            Crear Cuenta
+          </button>
+          <button onclick="closeAuthRequiredModal()" style="width: 100%; padding: 12px; background: transparent; border: 1px solid #555; border-radius: 4px; color: #aaa; cursor: pointer; font-size: 14px;">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+}
+
+function closeAuthRequiredModal() {
+  const modal = document.getElementById("auth-required-modal");
+  if (modal) modal.remove();
+}
+
+function goToLogin() {
+  closeAuthRequiredModal();
+  // Redirigir a login con parámetro next apuntando a checkout
+  window.location.href = "/login?next=checkout";
+}
+
+function goToRegistro() {
+  closeAuthRequiredModal();
+  // Redirigir a registro con parámetro next apuntando a checkout
+  window.location.href = "/registro?next=checkout";
+}
+
+async function checkAuthStatus() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch("/api/auth-status", {
+      signal: controller.signal,
+      credentials: "include",
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return { authenticated: false };
+    const data = await response.json();
+    return data; // Devolver el objeto completo, no solo el booleano
+  } catch (err) {
+    console.error("Error checking auth status:", err);
+    return { authenticated: false };
+  }
+}
+
+function openEmailModalForAuthenticated() {
+  console.log("openEmailModalForAuthenticated called");
+
   // Crear la modal dinámicamente
   let modal = document.getElementById("email-modal");
 
@@ -1605,6 +1735,7 @@ async function confirmPurchaseWithEmail(email) {
     const response = await fetch("/api/procesar-compra", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         funcion_id: fn.id,
         asiento_ids: asiento_ids,
@@ -1810,7 +1941,9 @@ function searchMyTickets() {
 
   resultsDiv.innerHTML = `<p style="color: #aaa; text-align: center;">Buscando tus entradas...</p>`;
 
-  fetch(`/api/mis-tiquetes?email=${encodeURIComponent(email)}`)
+  fetch(`/api/mis-tiquetes?email=${encodeURIComponent(email)}`, {
+    credentials: "include",
+  })
     .then((res) => res.json())
     .then((data) => {
       if (data.success && data.tickets && data.tickets.length > 0) {
@@ -1910,7 +2043,9 @@ function searchAndAutoRedeem(code) {
 
   showToast("Validando entrada...", "info");
 
-  fetch(`/api/verificar-ticket/${code}`)
+  fetch(`/api/verificar-ticket/${code}`, {
+    credentials: "include",
+  })
     .then((res) => res.json())
     .then((data) => {
       if (data.success && data.ticket) {
@@ -1936,6 +2071,7 @@ function searchAndAutoRedeem(code) {
         fetch(`/api/canjear-ticket/${code}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
         })
           .then((res) => res.json())
           .then((redeemData) => {
@@ -2029,7 +2165,9 @@ function searchTicket() {
 
   // API call
   console.log("📡 Haciendo request a /api/verificar-ticket/" + code);
-  fetch(`/api/verificar-ticket/${code}`)
+  fetch(`/api/verificar-ticket/${code}`, {
+    credentials: "include",
+  })
     .then((res) => {
       console.log("📡 Response status:", res.status);
       return res.json();
@@ -2114,6 +2252,7 @@ function redeemTicket() {
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
   })
     .then((res) => res.json())
     .then((data) => {
@@ -2287,6 +2426,56 @@ function init() {
     setTimeout(() => overlay.remove(), 500);
   }, 900);
 
+  // Restaurar compra pendiente si existe (usuario regresó de autenticación)
+  const compraPendienteJson = localStorage.getItem("compra_pendiente");
+  if (compraPendienteJson) {
+    try {
+      const compraPendiente = JSON.parse(compraPendienteJson);
+      console.log(
+        "📦 Compra pendiente encontrada, restaurando estado...",
+        compraPendiente,
+      );
+
+      // Restaurar estado
+      state.selectedMovie = compraPendiente.selectedMovie;
+      state.selectedFunction = compraPendiente.selectedFunction;
+      state.selectedSeats = compraPendiente.selectedSeats;
+      state.ticketCode = compraPendiente.ticketCode;
+
+      console.log("✓ Estado restaurado:", state);
+
+      // Limpiar localStorage
+      localStorage.removeItem("compra_pendiente");
+
+      // Verificar que el usuario está autenticado e intentar completar la compra
+      getAuthData().then((authData) => {
+        if (authData && authData.authenticated && authData.user_email) {
+          console.log(
+            "✓ Usuario autenticado, usando email:",
+            authData.user_email,
+          );
+          // Navegar a home primero
+          navigate("home", {}, false);
+
+          // Luego completar la compra automáticamente con el email del usuario
+          setTimeout(() => {
+            confirmPurchaseWithEmail(authData.user_email);
+          }, 500);
+        } else {
+          console.log(
+            "❌ Usuario no autenticado después de regreso, navegando a home",
+          );
+          navigate("home", {}, false);
+        }
+      });
+
+      return;
+    } catch (e) {
+      console.error("Error restaurando compra pendiente:", e);
+      localStorage.removeItem("compra_pendiente");
+    }
+  }
+
   // Check URL params for deep linking
   const params = new URLSearchParams(window.location.search);
   const view = params.get("view");
@@ -2304,6 +2493,219 @@ function init() {
   }
 
   navigate("home", {}, false);
+
+  // Initialize authentication UI (non-blocking)
+  setTimeout(() => {
+    initAuthUI();
+  }, 100);
 }
 
-init();
+/* ════════════════════════════════════════════════════════════════
+   AUTHENTICATION UI
+════════════════════════════════════════════════════════════════ */
+
+// Initialize authentication UI on page load
+function initAuthUI() {
+  try {
+    console.log("🔐 Initializing Auth UI...");
+
+    // Ensure auth container exists
+    const authContainer = document.getElementById("nav-auth-container");
+    if (!authContainer) {
+      console.warn("⚠️ Auth container not found in DOM");
+      return;
+    }
+
+    console.log("✓ Auth container found");
+
+    // Primero mostrar los botones por defecto
+    const loginButtons = document.getElementById("nav-login-buttons");
+    const userMenu = document.getElementById("nav-user-menu");
+
+    if (loginButtons) {
+      loginButtons.style.display = "flex";
+      console.log("✓ Login buttons displayed");
+    }
+    if (userMenu) {
+      userMenu.style.display = "none";
+      console.log("✓ User menu hidden");
+    }
+
+    // Luego verificar si hay sesión activa
+    getAuthData()
+      .then((data) => {
+        try {
+          console.log("📊 Auth status response:", data);
+
+          const userMenuBtn = document.getElementById("btn-user-menu");
+          const userNameNav = document.getElementById("user-name-nav");
+          const userDropdown = document.getElementById("user-dropdown-menu");
+          const accountLink = document.getElementById("menu-account-link");
+
+          if (data && data.authenticated && data.user_name) {
+            console.log("✓ User authenticated:", data.user_name);
+            // User is logged in
+            if (loginButtons) loginButtons.style.display = "none";
+            if (userMenu) userMenu.style.display = "flex";
+            if (userNameNav) userNameNav.textContent = data.user_name;
+
+            // Actualizar link "Mi Cuenta" según si es admin o usuario
+            if (accountLink) {
+              if (data.user_rol === "admin") {
+                console.log("👤 Admin detected, link points to /admin");
+                accountLink.href = "/admin";
+              } else {
+                console.log("👤 Regular user, link points to /mi-cuenta");
+                accountLink.href = "/mi-cuenta";
+              }
+            }
+
+            console.log("✓ User menu displayed with name:", data.user_name);
+          } else {
+            console.log("ℹ️ User not authenticated");
+            if (loginButtons) loginButtons.style.display = "flex";
+            if (userMenu) userMenu.style.display = "none";
+          }
+
+          // Setup user menu toggle
+          if (userMenuBtn) {
+            userMenuBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const wrapper = e.currentTarget.closest(".user-menu-wrapper");
+              if (wrapper) {
+                wrapper.classList.toggle("active");
+                console.log("✓ User menu toggled");
+              }
+            });
+            console.log("✓ User menu toggle set up");
+          }
+
+          // Close dropdown when clicking outside
+          document.addEventListener("click", (e) => {
+            const userMenuWrapper =
+              document.querySelector(".user-menu-wrapper");
+            if (userMenuWrapper && !userMenuWrapper.contains(e.target)) {
+              userMenuWrapper.classList.remove("active");
+            }
+          });
+
+          // Close dropdown when clicking on a link
+          if (userDropdown) {
+            userDropdown.querySelectorAll("a").forEach((link) => {
+              link.addEventListener("click", () => {
+                const wrapper = link.closest(".user-menu-wrapper");
+                if (wrapper) wrapper.classList.remove("active");
+                console.log("✓ Dropdown closed after link click");
+              });
+            });
+          }
+        } catch (error) {
+          console.error("❌ Error setting up auth UI:", error);
+        }
+      })
+      .catch((error) => {
+        console.error("❌ Error checking auth status:", error);
+        // Mostrar botones por defecto si hay error
+        if (loginButtons) loginButtons.style.display = "flex";
+        if (userMenu) userMenu.style.display = "none";
+      });
+  } catch (error) {
+    console.error("❌ Outer error in initAuthUI:", error);
+  }
+}
+
+// Show login modal for checkout
+function showLoginModal() {
+  const overlay = document.getElementById("login-modal-overlay");
+  if (overlay) {
+    overlay.classList.add("visible");
+    document.body.style.overflow = "hidden";
+  }
+}
+
+// Hide login modal
+function hideLoginModal() {
+  const overlay = document.getElementById("login-modal-overlay");
+  if (overlay) {
+    overlay.classList.remove("visible");
+    document.body.style.overflow = "";
+  }
+}
+
+// Check if user can proceed to checkout
+function canProceedToCheckout() {
+  return checkAuthStatus().then((data) => {
+    if (!data.authenticated) {
+      showLoginModal();
+      return false;
+    }
+    return true;
+  });
+}
+
+// Override the confirm function to check auth before checkout
+const originalShowConfirm = window.showConfirm || function () {};
+
+window.showConfirm = function () {
+  canProceedToCheckout().then((canProceed) => {
+    if (canProceed) {
+      originalShowConfirm();
+    }
+  });
+};
+
+// Create login modal if it doesn't exist
+function createLoginModalIfNeeded() {
+  if (!document.getElementById("login-modal-overlay") && document.body) {
+    const modalHTML = `
+      <div id="login-modal-overlay" class="login-modal-overlay">
+        <div class="login-modal-content">
+          <button class="login-modal-close" onclick="hideLoginModal()">×</button>
+          <div class="login-modal-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h2 class="login-modal-title">Inicia Sesión</h2>
+          <p class="login-modal-text">
+            Para comprar entradas de cine, necesitas tener una cuenta. ¿Prefieres iniciar sesión o crear una nueva?
+          </p>
+          <div class="login-modal-buttons">
+            <a href="/login" class="login-modal-btn primary">Iniciar Sesión</a>
+            <a href="/registro" class="login-modal-btn secondary">Crear Cuenta</a>
+          </div>
+        </div>
+      </div>
+    `;
+    try {
+      document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+      // Close modal on overlay click
+      const overlay = document.getElementById("login-modal-overlay");
+      if (overlay) {
+        overlay.addEventListener("click", (e) => {
+          if (e.target.id === "login-modal-overlay") {
+            hideLoginModal();
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error creating login modal:", error);
+    }
+  }
+}
+
+// Initialize login modal
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", createLoginModalIfNeeded);
+} else {
+  createLoginModalIfNeeded();
+}
+
+// Initialize app
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}

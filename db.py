@@ -1,4 +1,5 @@
 import mysql.connector
+import bcrypt
 
 from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
 
@@ -638,17 +639,56 @@ def get_funcion_by_id(funcion_id):
     return funcion
 
 def create_funcion(pelicula_id, fecha, hora, precio, sala, tecnologia):
-    """Crear una nueva función"""
+    """Crear una nueva función validando conflictos de horarios"""
+    from datetime import datetime, timedelta
+    
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     
     try:
+        # 1. Obtener duración de la película
+        cursor.execute("SELECT duracion FROM peliculas WHERE id = %s", (pelicula_id,))
+        pelicula = cursor.fetchone()
+        if not pelicula:
+            raise ValueError(f"Película con ID {pelicula_id} no encontrada")
+        
+        duracion_minutos = pelicula['duracion']
+        
+        # 2. Convertir hora a datetime y calcular hora_fin
+        hora_obj = datetime.strptime(hora, '%H:%M').time()
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        hora_inicio = datetime.combine(fecha_obj, hora_obj)
+        hora_fin_obj = hora_inicio + timedelta(minutes=duracion_minutos)
+        hora_fin = hora_fin_obj.time()
+        
+        # 3. Validar que no haya conflicto en la misma sala
         cursor.execute("""
-            INSERT INTO funciones (pelicula_id, fecha, hora, precio, sala, tecnologia, estado)
-            VALUES (%s, %s, %s, %s, %s, %s, 'disponible')
-        """, (pelicula_id, fecha, hora, precio, sala, tecnologia))
+            SELECT id, hora, hora_fin
+            FROM funciones
+            WHERE sala = %s AND fecha = %s
+        """, (sala, fecha))
+        
+        funciones_existentes = cursor.fetchall()
+        
+        for funcion in funciones_existentes:
+            h_inicio_existente = datetime.combine(fecha_obj, funcion['hora'])
+            h_fin_existente = datetime.combine(fecha_obj, funcion['hora_fin'])
+            
+            # Verificar solapamiento
+            if (hora_inicio < h_fin_existente and hora_fin_obj > h_inicio_existente):
+                raise ValueError(
+                    f"Conflicto de horarios en {sala}: "
+                    f"Hay una función de {funcion['hora']} a {funcion['hora_fin']}"
+                )
+        
+        # 4. Insertar función con hora_fin calculada
+        cursor.execute("""
+            INSERT INTO funciones (pelicula_id, fecha, hora, hora_fin, precio, sala, tecnologia, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'disponible')
+        """, (pelicula_id, fecha, hora, hora_fin.strftime('%H:%M:%S'), precio, sala, tecnologia))
         
         conn.commit()
+        return True
         
     except Exception as e:
         conn.rollback()
@@ -658,18 +698,57 @@ def create_funcion(pelicula_id, fecha, hora, precio, sala, tecnologia):
         conn.close()
 
 def update_funcion(funcion_id, pelicula_id, fecha, hora, precio, sala, tecnologia):
-    """Actualizar una función"""
+    """Actualizar una función validando conflictos de horarios"""
+    from datetime import datetime, timedelta
+    
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     
     try:
+        # 1. Obtener duración de la película
+        cursor.execute("SELECT duracion FROM peliculas WHERE id = %s", (pelicula_id,))
+        pelicula = cursor.fetchone()
+        if not pelicula:
+            raise ValueError(f"Película con ID {pelicula_id} no encontrada")
+        
+        duracion_minutos = pelicula['duracion']
+        
+        # 2. Convertir hora a datetime y calcular hora_fin
+        hora_obj = datetime.strptime(hora, '%H:%M').time()
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        hora_inicio = datetime.combine(fecha_obj, hora_obj)
+        hora_fin_obj = hora_inicio + timedelta(minutes=duracion_minutos)
+        hora_fin = hora_fin_obj.time()
+        
+        # 3. Validar que no haya conflicto en la misma sala
+        cursor.execute("""
+            SELECT id, hora, hora_fin
+            FROM funciones
+            WHERE sala = %s AND fecha = %s AND id != %s
+        """, (sala, fecha, funcion_id))
+        
+        funciones_existentes = cursor.fetchall()
+        
+        for funcion in funciones_existentes:
+            h_inicio_existente = datetime.combine(fecha_obj, funcion['hora'])
+            h_fin_existente = datetime.combine(fecha_obj, funcion['hora_fin'])
+            
+            # Verificar solapamiento
+            if (hora_inicio < h_fin_existente and hora_fin_obj > h_inicio_existente):
+                raise ValueError(
+                    f"Conflicto de horarios en {sala}: "
+                    f"Hay una función de {funcion['hora']} a {funcion['hora_fin']}"
+                )
+        
+        # 4. Actualizar función con hora_fin calculada
         cursor.execute("""
             UPDATE funciones 
-            SET pelicula_id=%s, fecha=%s, hora=%s, precio=%s, sala=%s, tecnologia=%s
+            SET pelicula_id=%s, fecha=%s, hora=%s, hora_fin=%s, precio=%s, sala=%s, tecnologia=%s
             WHERE id=%s
-        """, (pelicula_id, fecha, hora, precio, sala, tecnologia, funcion_id))
+        """, (pelicula_id, fecha, hora, hora_fin.strftime('%H:%M:%S'), precio, sala, tecnologia, funcion_id))
         
         conn.commit()
+        return True
         
     except Exception as e:
         conn.rollback()
@@ -943,3 +1022,318 @@ def delete_asiento(asiento_id):
     finally:
         cursor.close()
         conn.close()
+
+# ==========================================
+# FUNCIONES PARA AUTENTICACIÓN DE USUARIOS
+# ==========================================
+
+def hash_password(password):
+    """Hashear contraseña con bcrypt"""
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def verify_password(password, password_hash):
+    """Verificar contraseña contra hash bcrypt"""
+    return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+
+def email_exists(email):
+    """Verificar si un email ya está registrado"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT id FROM usuarios WHERE email = %s", (email.lower(),))
+    result = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return result is not None
+
+def create_usuario(email, nombre, apellido, password, telefono=None, ciudad=None, rol='usuario'):
+    """Crear un nuevo usuario registrado"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        password_hash = hash_password(password)
+        cursor.execute("""
+            INSERT INTO usuarios (email, nombre, apellido, password_hash, telefono, ciudad, rol, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'activo')
+        """, (email.lower(), nombre, apellido, password_hash, telefono, ciudad, rol))
+        
+        conn.commit()
+        return True
+        
+    except Exception as e:
+        print(f"Error creating usuario: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_usuario_by_email(email):
+    """Obtener usuario por email (para login - funciona para usuarios y admins)"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT id, email, nombre, apellido, password_hash, telefono, ciudad, rol,
+               fecha_registro, ultimo_acceso, estado
+        FROM usuarios 
+        WHERE email = %s AND estado = 'activo'
+    """, (email.lower(),))
+    
+    usuario = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return usuario
+
+def get_usuario_by_id(user_id):
+    """Obtener datos del perfil de usuario"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT id, email, nombre, apellido, telefono, ciudad, rol,
+               fecha_registro, ultimo_acceso, estado
+        FROM usuarios 
+        WHERE id = %s
+    """, (user_id,))
+    
+    usuario = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return usuario
+
+def update_usuario_profile(user_id, nombre=None, apellido=None, telefono=None, ciudad=None):
+    """Actualizar datos del perfil de usuario"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        updates = []
+        params = []
+        
+        if nombre is not None:
+            updates.append("nombre = %s")
+            params.append(nombre)
+        if apellido is not None:
+            updates.append("apellido = %s")
+            params.append(apellido)
+        if telefono is not None:
+            updates.append("telefono = %s")
+            params.append(telefono)
+        if ciudad is not None:
+            updates.append("ciudad = %s")
+            params.append(ciudad)
+        
+        if not updates:
+            return False
+        
+        params.append(user_id)
+        query = f"UPDATE usuarios SET {', '.join(updates)} WHERE id = %s"
+        
+        cursor.execute(query, params)
+        conn.commit()
+        return True
+        
+    except Exception as e:
+        print(f"Error updating usuario profile: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_usuario_last_access(user_id):
+    """Actualizar timestamp de último acceso"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE usuarios 
+            SET ultimo_acceso = NOW() 
+            WHERE id = %s
+        """, (user_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"Error updating last access: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_compras(user_id):
+    """Obtener historial de compras del usuario"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+        SELECT 
+            t.id,
+            t.codigo,
+            t.total,
+            t.estado,
+            t.fecha_compra,
+            f.fecha,
+            f.hora,
+            f.sala,
+            f.tecnologia,
+            p.titulo as pelicula_titulo,
+            p.clasificacion,
+            p.imagen_url,
+            COUNT(dt.asiento_id) as cantidad_asientos
+        FROM tiquetes t
+        JOIN funciones f ON t.funcion_id = f.id
+        JOIN peliculas p ON f.pelicula_id = p.id
+        LEFT JOIN detalle_tiquete dt ON t.id = dt.tiquete_id
+        WHERE t.email = (SELECT email FROM usuarios WHERE id = %s)
+        GROUP BY t.id
+        ORDER BY t.fecha_compra DESC
+    """
+    
+    cursor.execute(query, (user_id,))
+    compras = cursor.fetchall()
+    
+    # Convertir tipos no serializables
+    for c in compras:
+        if c.get('fecha'):
+            c['fecha'] = str(c['fecha'])
+        if c.get('hora'):
+            c['hora'] = str(c['hora'])
+        if c.get('total'):
+            c['total'] = float(c['total'])
+        if c.get('fecha_compra'):
+            c['fecha_compra'] = str(c['fecha_compra'])
+    
+    cursor.close()
+    conn.close()
+    return compras
+
+def get_user_compra_detalle(user_id, ticket_id):
+    """Obtener detalles de una compra específica del usuario"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Primero verificar que el ticket pertenece al usuario
+    cursor.execute("""
+        SELECT u.id FROM usuarios u
+        JOIN tiquetes t ON t.email = u.email
+        WHERE u.id = %s AND t.id = %s
+    """, (user_id, ticket_id))
+    
+    if not cursor.fetchone():
+        cursor.close()
+        conn.close()
+        return None
+    
+    # Obtener detalles del ticket
+    query = """
+        SELECT 
+            t.id,
+            t.codigo,
+            t.email,
+            t.total,
+            t.estado,
+            t.fecha_compra,
+            f.fecha,
+            f.hora,
+            f.sala,
+            f.tecnologia,
+            p.titulo as pelicula_titulo,
+            p.clasificacion,
+            p.descripcion,
+            p.director,
+            p.imagen_url,
+            GROUP_CONCAT(a.numero ORDER BY a.fila, a.columna SEPARATOR ', ') as asientos
+        FROM tiquetes t
+        JOIN funciones f ON t.funcion_id = f.id
+        JOIN peliculas p ON f.pelicula_id = p.id
+        LEFT JOIN detalle_tiquete dt ON t.id = dt.tiquete_id
+        LEFT JOIN asientos a ON dt.asiento_id = a.id
+        WHERE t.id = %s
+        GROUP BY t.id
+    """
+    
+    cursor.execute(query, (ticket_id,))
+    compra = cursor.fetchone()
+    
+    if compra:
+        if compra.get('fecha'):
+            compra['fecha'] = str(compra['fecha'])
+        if compra.get('hora'):
+            compra['hora'] = str(compra['hora'])
+        if compra.get('total'):
+            compra['total'] = float(compra['total'])
+        if compra.get('fecha_compra'):
+            compra['fecha_compra'] = str(compra['fecha_compra'])
+    
+    cursor.close()
+    conn.close()
+    return compra
+
+def process_purchase_with_user(funcion_id, asiento_ids, user_id, ticket_code, total=0):
+    """
+    Procesar compra vinculada a usuario registrado.
+    Retorna ticket_id si es exitoso, None si falla.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Obtener email del usuario
+        cursor.execute("SELECT email FROM usuarios WHERE id = %s", (user_id,))
+        usuario = cursor.fetchone()
+        
+        if not usuario:
+            print(f"Usuario {user_id} no encontrado")
+            return None
+        
+        email = usuario[0]
+        
+        # 1. Insertar en tiquetes
+        insert_ticket = """
+            INSERT INTO tiquetes (codigo, funcion_id, email, total, estado)
+            VALUES (%s, %s, %s, %s, 'activo')
+        """
+        cursor.execute(insert_ticket, (ticket_code, funcion_id, email, total))
+        conn.commit()
+        ticket_id = cursor.lastrowid
+        
+        print(f"Ticket inserted with ID: {ticket_id}")
+        
+        # 2. Insertar en detalle_tiquete para cada asiento
+        insert_detail = """
+            INSERT INTO detalle_tiquete (tiquete_id, asiento_id, funcion_id)
+            VALUES (%s, %s, %s)
+        """
+        for asiento_id in asiento_ids:
+            cursor.execute(insert_detail, (ticket_id, asiento_id, funcion_id))
+        
+        conn.commit()
+        
+        # 3. Limpiar reservas temporales
+        for asiento_id in asiento_ids:
+            delete_query = "DELETE FROM reservas_temporales WHERE funcion_id = %s AND asiento_id = %s"
+            cursor.execute(delete_query, (funcion_id, asiento_id))
+        
+        conn.commit()
+        print(f"Purchase processed. Ticket ID: {ticket_id}")
+        return ticket_id
+        
+    except Exception as e:
+        print(f"Error processing purchase: {e}")
+        import traceback
+        traceback.print_exc()
+        conn.rollback()
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_admin_by_email(email):
+    """Obtener admin por email - busca usuario con rol='admin'
+    (función mantenida para compatibilidad con app.py)"""
+    return get_usuario_by_email(email)

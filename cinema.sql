@@ -16,60 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `admins`
---
-
-DROP TABLE IF EXISTS `admins`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `admins` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `email` varchar(150) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
-  `nombre` varchar(100) DEFAULT NULL,
-  `fecha_creacion` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `ultimo_acceso` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `admins`
---
-
-LOCK TABLES `admins` WRITE;
-/*!40000 ALTER TABLE `admins` DISABLE KEYS */;
-INSERT INTO `admins` VALUES (1,'admin@cinevox.com','$2b$12$FCRmNL/PVXoTroK1G94auuQ2uAnyVLYiaAffQaLuK/NlsYpVF9/Oy','Admin CINEVOX','2026-04-05 19:00:00',NULL);
-/*!40000 ALTER TABLE `admins` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `formatos_pelicula`
---
-
-DROP TABLE IF EXISTS `formatos_pelicula`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `formatos_pelicula` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(50) NOT NULL,
-  `descripcion` varchar(200) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `formatos_pelicula`
---
-
-LOCK TABLES `formatos_pelicula` WRITE;
-/*!40000 ALTER TABLE `formatos_pelicula` DISABLE KEYS */;
-INSERT INTO `formatos_pelicula` VALUES (1,'DOB','Doblado al Español'),(2,'3D DOB','3D Doblado'),(3,'DIG SUB','Digital Subtitulado');
-/*!40000 ALTER TABLE `formatos_pelicula` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `actores`
 --
 
@@ -143,7 +89,7 @@ CREATE TABLE `detalle_tiquete` (
   CONSTRAINT `detalle_tiquete_ibfk_1` FOREIGN KEY (`tiquete_id`) REFERENCES `tiquetes` (`id`),
   CONSTRAINT `detalle_tiquete_ibfk_2` FOREIGN KEY (`asiento_id`) REFERENCES `asientos` (`id`),
   CONSTRAINT `detalle_tiquete_ibfk_3` FOREIGN KEY (`funcion_id`) REFERENCES `funciones` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -152,8 +98,33 @@ CREATE TABLE `detalle_tiquete` (
 
 LOCK TABLES `detalle_tiquete` WRITE;
 /*!40000 ALTER TABLE `detalle_tiquete` DISABLE KEYS */;
-INSERT INTO `detalle_tiquete` VALUES (1,1,15,8),(2,1,5,8),(3,1,10,8),(4,2,4,2),(5,3,9,5),(6,4,4,10),(7,5,5,9),(8,6,2,10),(9,7,1,9),(10,7,7,9),(11,7,8,9),(12,8,9,2),(13,9,1,10),(14,10,8,2),(15,11,3,2),(16,12,10,5),(17,13,15,1);
+INSERT INTO `detalle_tiquete` VALUES (1,1,15,8),(2,1,5,8),(3,1,10,8),(4,2,4,2),(5,3,9,5),(6,4,4,10),(7,5,5,9),(8,6,2,10),(9,7,1,9),(10,7,7,9),(11,7,8,9),(12,8,9,2),(13,9,1,10),(14,10,8,2),(15,11,3,2),(16,12,10,5),(17,13,15,1),(18,15,203,21),(19,16,222,28),(20,17,249,11),(21,18,219,18);
 /*!40000 ALTER TABLE `detalle_tiquete` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `formatos_pelicula`
+--
+
+DROP TABLE IF EXISTS `formatos_pelicula`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `formatos_pelicula` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  `descripcion` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `formatos_pelicula`
+--
+
+LOCK TABLES `formatos_pelicula` WRITE;
+/*!40000 ALTER TABLE `formatos_pelicula` DISABLE KEYS */;
+INSERT INTO `formatos_pelicula` VALUES (1,'DOB','Doblado al Español'),(2,'3D DOB','3D Doblado'),(3,'DIG SUB','Digital Subtitulado');
+/*!40000 ALTER TABLE `formatos_pelicula` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -168,17 +139,18 @@ CREATE TABLE `funciones` (
   `pelicula_id` int NOT NULL,
   `fecha` date NOT NULL,
   `hora` time NOT NULL,
+  `hora_fin` time NOT NULL DEFAULT '00:00:00',
   `precio` decimal(10,2) NOT NULL,
   `estado` varchar(20) DEFAULT 'disponible',
   `sala` varchar(50) DEFAULT NULL,
   `tecnologia` varchar(50) DEFAULT NULL,
-  `formato_id` int DEFAULT 1,
+  `formato_id` int DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `pelicula_id` (`pelicula_id`),
   KEY `formato_id` (`formato_id`),
-  CONSTRAINT `funciones_ibfk_1` FOREIGN KEY (`pelicula_id`) REFERENCES `peliculas` (`id`),
-  CONSTRAINT `fk_formato` FOREIGN KEY (`formato_id`) REFERENCES `formatos_pelicula` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  CONSTRAINT `fk_formato` FOREIGN KEY (`formato_id`) REFERENCES `formatos_pelicula` (`id`),
+  CONSTRAINT `funciones_ibfk_1` FOREIGN KEY (`pelicula_id`) REFERENCES `peliculas` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -187,7 +159,7 @@ CREATE TABLE `funciones` (
 
 LOCK TABLES `funciones` WRITE;
 /*!40000 ALTER TABLE `funciones` DISABLE KEYS */;
-INSERT INTO `funciones` VALUES (1,1,'2026-03-31','14:30:00',18.50,'disponible','Sala IMAX','IMAX 4K'),(2,1,'2026-03-31','17:15:00',15.00,'disponible','Sala Premium','Dolby Vision'),(3,1,'2026-03-31','20:00:00',12.50,'disponible','Sala 3','2D Digital'),(4,1,'2026-03-31','22:30:00',12.50,'disponible','Sala 5','2D Digital'),(5,1,'2026-04-01','16:00:00',18.50,'disponible','Sala IMAX','IMAX 4K'),(6,1,'2026-04-01','18:45:00',15.00,'disponible','Sala Premium','Dolby Vision'),(7,1,'2026-04-01','21:30:00',12.50,'disponible','Sala 2','2D Digital'),(8,1,'2026-04-02','15:00:00',15.00,'disponible','Sala Premium','Dolby Vision'),(9,1,'2026-04-02','18:00:00',18.50,'disponible','Sala IMAX','IMAX 4K'),(10,1,'2026-04-02','20:45:00',12.50,'disponible','Sala 4','2D Digital');
+INSERT INTO `funciones` VALUES (11,1,'2026-04-14','14:30:00','17:30:00',12500.00,'disponible','Sala A (Premium)','DIG SUB',1),(12,1,'2026-04-14','17:15:00','20:15:00',12500.00,'disponible','Sala B','3D DIG',1),(13,1,'2026-04-14','19:45:00','22:45:00',13500.00,'disponible','Sala A (Premium)','DIG SUB',1),(14,1,'2026-04-14','22:00:00','01:00:00',12000.00,'disponible','Sala C','DIG',1),(15,2,'2026-04-14','15:00:00','18:20:00',12500.00,'disponible','Sala D','DIG',1),(16,2,'2026-04-14','18:30:00','21:50:00',12500.00,'disponible','Sala E (IMAX)','3D DIG',1),(17,2,'2026-04-14','21:00:00','00:20:00',13500.00,'disponible','Sala D','DIG SUB',1),(18,3,'2026-04-14','13:45:00','16:10:00',11500.00,'disponible','Sala B','DIG SUB',1),(19,3,'2026-04-14','16:45:00','19:10:00',12500.00,'disponible','Sala C','3D DIG',1),(20,3,'2026-04-14','20:15:00','22:40:00',13000.00,'disponible','Sala B','DIG',1),(21,4,'2026-04-15','14:00:00','16:18:00',12500.00,'disponible','Sala A (Premium)','DIG SUB',1),(22,4,'2026-04-15','16:30:00','18:48:00',12500.00,'disponible','Sala D','3D DIG',1),(23,4,'2026-04-15','19:15:00','21:33:00',13500.00,'disponible','Sala A (Premium)','DIG SUB',1),(24,4,'2026-04-15','21:45:00','00:03:00',12000.00,'disponible','Sala E (IMAX)','DIG',1),(25,5,'2026-04-15','13:30:00','16:06:00',11500.00,'disponible','Sala B','DIG',1),(26,5,'2026-04-15','16:00:00','18:36:00',12500.00,'disponible','Sala C','DIG SUB',1),(27,5,'2026-04-15','18:45:00','21:21:00',12500.00,'disponible','Sala E (IMAX)','3D DIG',1),(28,5,'2026-04-15','21:15:00','23:51:00',13000.00,'disponible','Sala B','DIG SUB',1),(29,4,'2026-04-16','13:50:00','16:08:00',300.00,'disponible','02','3D',1),(30,1,'2026-04-14','14:00:00','17:00:00',123.00,'disponible','dsad','3D',1),(31,2,'2026-04-15','16:50:00','20:10:00',12000.00,'disponible','Premium','3D',1);
 /*!40000 ALTER TABLE `funciones` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -238,7 +210,7 @@ CREATE TABLE `pelicula_actores` (
 
 LOCK TABLES `pelicula_actores` WRITE;
 /*!40000 ALTER TABLE `pelicula_actores` DISABLE KEYS */;
-INSERT INTO `pelicula_actores` VALUES (1,1),(1,2),(1,3),(1,4),(1,5),(1,6);
+INSERT INTO `pelicula_actores` VALUES (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(2,5),(5,6);
 /*!40000 ALTER TABLE `pelicula_actores` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -265,7 +237,7 @@ CREATE TABLE `pelicula_generos` (
 
 LOCK TABLES `pelicula_generos` WRITE;
 /*!40000 ALTER TABLE `pelicula_generos` DISABLE KEYS */;
-INSERT INTO `pelicula_generos` VALUES (1,1),(1,3);
+INSERT INTO `pelicula_generos` VALUES (1,1),(5,1),(1,3),(5,3),(2,5);
 /*!40000 ALTER TABLE `pelicula_generos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -290,7 +262,7 @@ CREATE TABLE `peliculas` (
   `tagline` varchar(255) DEFAULT NULL,
   `director` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -299,7 +271,7 @@ CREATE TABLE `peliculas` (
 
 LOCK TABLES `peliculas` WRITE;
 /*!40000 ALTER TABLE `peliculas` DISABLE KEYS */;
-INSERT INTO `peliculas` VALUES (1,'Spider-Man: Brand New Day','presenta a un Peter Parker maduro, cuatro años tras No Way Home, viviendo en solitario y sin identidad conocida. Dedicado totalmente a ser Spider-Man, enfrenta una red criminal compleja, una evolución física peligrosa y amenazas ocultas en un entorno más oscuro y urbano.',180,'PG-13','https://thecosmiccircus.com/wp-content/uploads/2025/05/spider-man-brand-new-day.jpg','Estreno','[\"Nuevo Estreno\"]',4.5,2026,'Un gran poder, conlleva una gran responsibilidad...','Destin Daniel Cretton');
+INSERT INTO `peliculas` VALUES (1,'Spider-Man: Brand New Day','presenta a un Peter Parker maduro, cuatro años tras No Way Home, viviendo en solitario y sin identidad conocida. Dedicado totalmente a ser Spider-Man, enfrenta una red criminal compleja, una evolución física peligrosa y amenazas ocultas en un entorno más oscuro y urbano.',180,'PG-13','https://thecosmiccircus.com/wp-content/uploads/2025/05/spider-man-brand-new-day.jpg','Estreno','[\"Nuevo Estreno\"]',4.5,2026,'Un gran poder, conlleva una gran responsibilidad...','Destin Daniel Cretton'),(2,'Backyardigans','unos monos ahi culiaos y luego esta tasha y el godostin',200,'R','https://m.media-amazon.com/images/S/pv-target-images/6b02fea9ac43358cad762d6d089a3684dc62bee64c72c5f99c5a690e99b5bb89._SX1080_FMjpg_.jpg','activa',NULL,2.3,2030,NULL,'Mosquito'),(3,'Echoes of Eternity','Un viaje a través del tiempo y la memoria',145,'PG-13','https://images.unsplash.com/photo-1485846234645-a62644f84728?w=400&q=80','activa',NULL,7.9,2025,NULL,'Sarah Chen'),(4,'The Neon Genesis','La realidad se desmorona en la ciudad futurista',138,'NC-17','https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&q=80','activa',NULL,8.4,2025,NULL,'David Torres'),(5,'Crimson Tide: Leviathan','El océano guarda secretos oscuros y mucho más oscuro',156,'PG-13','https://wp.clutchpoints.com/wp-content/uploads/2024/04/ff16-the-rising-tide-all-leviathan-abilities-and-how-to-unlock.jpg','activa',NULL,7.8,2025,NULL,'Anna Volkova');
 /*!40000 ALTER TABLE `peliculas` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -320,7 +292,7 @@ CREATE TABLE `reservas_temporales` (
   KEY `asiento_id` (`asiento_id`),
   CONSTRAINT `reservas_temporales_ibfk_1` FOREIGN KEY (`funcion_id`) REFERENCES `funciones` (`id`),
   CONSTRAINT `reservas_temporales_ibfk_2` FOREIGN KEY (`asiento_id`) REFERENCES `asientos` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=69 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -329,7 +301,7 @@ CREATE TABLE `reservas_temporales` (
 
 LOCK TABLES `reservas_temporales` WRITE;
 /*!40000 ALTER TABLE `reservas_temporales` DISABLE KEYS */;
-INSERT INTO `reservas_temporales` VALUES (15,1,10,'2026-04-01 02:49:24'),(16,1,2,'2026-04-01 02:50:00'),(17,2,10,'2026-04-01 15:33:08'),(20,3,4,'2026-04-01 18:29:07'),(21,2,5,'2026-04-01 18:40:20'),(22,3,14,'2026-04-01 19:02:57'),(23,5,4,'2026-04-01 19:06:34'),(24,5,15,'2026-04-01 19:10:30'),(25,5,5,'2026-04-01 19:36:08'),(29,3,7,'2026-04-01 20:21:38'),(43,1,8,'2026-04-01 20:43:17'),(58,5,3,'2026-04-03 16:21:57'),(59,1,5,'2026-04-03 16:55:55');
+INSERT INTO `reservas_temporales` VALUES (15,1,10,'2026-04-01 02:49:24'),(16,1,2,'2026-04-01 02:50:00'),(17,2,10,'2026-04-01 15:33:08'),(20,3,4,'2026-04-01 18:29:07'),(21,2,5,'2026-04-01 18:40:20'),(22,3,14,'2026-04-01 19:02:57'),(23,5,4,'2026-04-01 19:06:34'),(24,5,15,'2026-04-01 19:10:30'),(25,5,5,'2026-04-01 19:36:08'),(29,3,7,'2026-04-01 20:21:38'),(43,1,8,'2026-04-01 20:43:17'),(58,5,3,'2026-04-03 16:21:57'),(59,1,5,'2026-04-03 16:55:55'),(70,12,271,'2026-04-07 05:23:50'),(71,12,208,'2026-04-07 05:29:46'),(72,12,15,'2026-04-07 05:29:50'),(73,12,298,'2026-04-07 05:29:51'),(74,12,214,'2026-04-07 05:29:54'),(76,16,234,'2026-04-14 23:49:47'),(77,18,270,'2026-04-14 23:50:08'),(78,15,249,'2026-04-14 23:51:41'),(79,21,221,'2026-04-14 23:54:44');
 /*!40000 ALTER TABLE `reservas_temporales` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -378,7 +350,7 @@ CREATE TABLE `tiquetes` (
   UNIQUE KEY `codigo` (`codigo`),
   KEY `funcion_id` (`funcion_id`),
   CONSTRAINT `tiquetes_ibfk_1` FOREIGN KEY (`funcion_id`) REFERENCES `funciones` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -387,20 +359,46 @@ CREATE TABLE `tiquetes` (
 
 LOCK TABLES `tiquetes` WRITE;
 /*!40000 ALTER TABLE `tiquetes` DISABLE KEYS */;
-INSERT INTO `tiquetes` VALUES (1,'TKT-4890-YZM30',8,'dev.daviar@gmail.com',46.00,'activo','2026-04-01 19:30:13'),(2,'TKT-9128-WQW48',2,'dsadsa@dsa.dsa',12.50,'activo','2026-04-01 20:14:42'),(3,'TKT-1626-YUF69',5,'dev.daviar@gmail.com',15.00,'activo','2026-04-03 03:35:24'),(4,'TKT-5013-UTF51',10,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 03:38:44'),(5,'TKT-5308-NFK94',9,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 03:48:20'),(6,'TKT-5584-WNK23',10,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 03:52:48'),(7,'TKT-8232-PFZ33',9,'dev.daviar@gmail.com',42.50,'canjeado','2026-04-03 04:04:54'),(8,'TKT-5418-JFX15',2,'dev.daviar@gmail.com',15.00,'activo','2026-04-03 04:17:19'),(9,'TKT-1750-YSA44',10,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 04:25:39'),(10,'TKT-4467-ZQN10',2,'dev.daviar@gmail.com',15.00,'canjeado','2026-04-03 04:38:51'),(11,'TKT-2488-WPD20',2,'dev.daviar@gmail.com',12.50,'canjeado','2026-04-03 04:46:35'),(12,'TKT-6956-ZHD14',5,'dev.daviar@gmail.com',15.00,'canjeado','2026-04-03 04:50:56'),(13,'TKT-8961-CNJ66',1,'dev.daviar@gmail.com',18.50,'canjeado','2026-04-03 18:14:32');
+INSERT INTO `tiquetes` VALUES (1,'TKT-4890-YZM30',8,'dev.daviar@gmail.com',46.00,'activo','2026-04-01 19:30:13'),(2,'TKT-9128-WQW48',2,'dsadsa@dsa.dsa',12.50,'activo','2026-04-01 20:14:42'),(3,'TKT-1626-YUF69',5,'dev.daviar@gmail.com',15.00,'activo','2026-04-03 03:35:24'),(4,'TKT-5013-UTF51',10,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 03:38:44'),(5,'TKT-5308-NFK94',9,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 03:48:20'),(6,'TKT-5584-WNK23',10,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 03:52:48'),(7,'TKT-8232-PFZ33',9,'dev.daviar@gmail.com',42.50,'canjeado','2026-04-03 04:04:54'),(8,'TKT-5418-JFX15',2,'dev.daviar@gmail.com',15.00,'activo','2026-04-03 04:17:19'),(9,'TKT-1750-YSA44',10,'dev.daviar@gmail.com',12.50,'activo','2026-04-03 04:25:39'),(10,'TKT-4467-ZQN10',2,'dev.daviar@gmail.com',15.00,'canjeado','2026-04-03 04:38:51'),(11,'TKT-2488-WPD20',2,'dev.daviar@gmail.com',12.50,'canjeado','2026-04-03 04:46:35'),(12,'TKT-6956-ZHD14',5,'dev.daviar@gmail.com',15.00,'canjeado','2026-04-03 04:50:56'),(13,'TKT-8961-CNJ66',1,'dev.daviar@gmail.com',18.50,'canjeado','2026-04-03 18:14:32'),(14,'TKT-2231-KBK91',11,'dev.daviar@gmail.com',12.50,'canjeado','2026-04-07 05:04:27'),(15,'TKT-3561-WVZ57',21,'dev.daviar@gmail.com',12.50,'activo','2026-04-14 23:28:47'),(16,'TKT-7466-TPF11',28,'dev.daviar@gmail.com',12.50,'activo','2026-04-14 23:46:17'),(17,'TKT-5620-JKW99',11,'dev.daviar@gmail.com',15.00,'activo','2026-04-14 23:58:01'),(18,'TKT-5388-CYB80',18,'admin@cinevox.com',12.50,'activo','2026-04-15 00:42:47');
 /*!40000 ALTER TABLE `tiquetes` ENABLE KEYS */;
 UNLOCK TABLES;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 
+--
+-- Table structure for table `usuarios`
+--
+
+DROP TABLE IF EXISTS `usuarios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `usuarios` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(150) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `nombre` varchar(150) NOT NULL,
+  `apellido` varchar(150) NOT NULL,
+  `telefono` varchar(20) NOT NULL,
+  `ciudad` varchar(150) NOT NULL,
+  `rol` enum('usuario','admin') NOT NULL DEFAULT 'usuario',
+  `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `ultimo_acceso` timestamp NULL DEFAULT NULL,
+  `estado` varchar(20) DEFAULT 'activo',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `telefono` (`telefono`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `usuarios`
+--
+
+LOCK TABLES `usuarios` WRITE;
+/*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
+INSERT INTO `usuarios` VALUES (1,'admin@cinevox.com','$2b$12$FCRmNL/PVXoTroK1G94auuQ2uAnyVLYiaAffQaLuK/NlsYpVF9/Oy','Admin','Bógota','CineVOX','3003683126','admin','2026-04-14 22:38:01','2026-04-15 02:10:57','activo'),(2,'dev.daviar@gmail.com','$2b$12$bM2kl6w0btIZF0YgXWx.qunMYpMRwUm6tZtjQuUQJhOAOea6nmGIi','Jerson David','Silva Arjona','3003683126','Barranquilla','usuario','2026-04-14 23:37:16','2026-04-15 02:14:00','activo');
+/*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
@@ -409,4 +407,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-07 15:45:00
+-- Dump completed on 2026-04-15 14:27:51

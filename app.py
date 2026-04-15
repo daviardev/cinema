@@ -1,6 +1,7 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_mail import Mail
 from datetime import timedelta
+from functools import wraps
 from config import (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, 
                     MAIL_SERVER, MAIL_PORT, MAIL_USE_TLS, MAIL_USERNAME, MAIL_PASSWORD, EMAIL_DEFAULT_SENDER)
 
@@ -12,9 +13,31 @@ from db import (get_db_connection, get_peliculas_cartelera, get_funciones_por_pe
                 get_all_generos, create_genero, update_genero, delete_genero,
                 get_all_actores, create_actor, update_actor, delete_actor,
                 get_all_asientos, get_asiento_by_id, get_tipos_asientos, create_asiento, update_asiento, delete_asiento,
-                get_dashboard_stats)
+                get_dashboard_stats, hash_password, verify_password, email_exists, create_usuario, get_usuario_by_email,
+                get_usuario_by_id, get_user_compras, get_user_compra_detalle, process_purchase_with_user,
+                update_usuario_last_access, get_admin_by_email)
 
 app = Flask(__name__, static_folder='static', static_url_path='')
+
+# Configurar secret key para sesiones
+app.secret_key = 'tu_clave_secreta_super_secret_cinema_vox_2025'  # Cambiar en producción a variable de entorno
+
+# Configuración de sesión
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=4)
+app.config['SESSION_COOKIE_SECURE'] = False  # True en producción
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+
+@app.after_request
+def refresh_session(response):
+    """Refrescar la sesión después de cada request para asegurar persistencia"""
+    session.modified = True
+    return response
 
 # Configurar Flask-Mail
 app.config['MAIL_SERVER'] = MAIL_SERVER
@@ -65,9 +88,186 @@ def set_no_cache(response):
     response.headers['Expires'] = '0'
     return response
 
+# ==========================================
+# DECORADORES PARA AUTORIZACIÓN
+# ==========================================
+
+def login_required(f):
+    """Decorador para proteger rutas - requiere usuario autenticado (usuario o admin)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login', next=request.url))
+        
+        # Actualizar timestamp de último acceso
+        update_usuario_last_access(session['user_id'])
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorador para proteger rutas admin - requiere rol='admin'"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session or session.get('user_rol') != 'admin':
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# ==========================================
+# RUTAS DE AUTENTICACIÓN
+# ==========================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email', '').lower()
+        password = request.form.get('password', '')
+        remember = request.form.get('remember')
+        
+        # Intentar login - funciona para usuarios y admins
+        usuario = get_usuario_by_email(email)
+        if usuario and verify_password(password, usuario['password_hash']):
+            # Autenticación exitosa
+            session['user_id'] = usuario['id']
+            session['user_email'] = usuario['email']
+            session['user_nombre'] = usuario['nombre']
+            session['user_rol'] = usuario.get('rol', 'usuario')  # Guardar el rol
+            
+            if remember:
+                session.permanent = True
+                app.permanent_session_lifetime = timedelta(days=30)
+            
+            # Si es admin, redirigir al panel de admin
+            if session['user_rol'] == 'admin':
+                return redirect(url_for('admin_index'))
+            
+            # Si es usuario regular, manejar redirección a checkout si hay compra pendiente
+            next_page = request.args.get('next')
+            if next_page == 'checkout':
+                return redirect(url_for('checkout'))
+            
+            if next_page and next_page.startswith('/'):
+                return redirect(next_page)
+            return redirect(url_for('mi_cuenta'))
+        
+        return render_template('login.html', error='Email o contraseña incorrectos')
+    
+    return render_template('login.html')
+
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
+        apellido = request.form.get('apellido', '') or request.form.get('apellidos', '')  # Support both
+        apellido = apellido.strip()
+        email = request.form.get('email', '').lower().strip()
+        password = request.form.get('password', '')
+        password_confirm = request.form.get('password_confirm', '')
+        ciudad = request.form.get('ciudad', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        
+        # Validaciones
+        if not nombre or not apellido or not email or not password:
+            return render_template('registro.html', error='Todos los campos obligatorios deben completarse')
+        
+        if password != password_confirm:
+            return render_template('registro.html', error='Las contraseñas no coinciden')
+        
+        if len(password) < 8:
+            return render_template('registro.html', error='La contraseña debe tener al menos 8 caracteres')
+        
+        if email_exists(email):
+            return render_template('registro.html', error='Este email ya está registrado')
+        
+        # Crear usuario
+        if create_usuario(email, nombre, apellido, password, telefono, ciudad):
+            # Auto-login después de registro
+            usuario = get_usuario_by_email(email)
+            session['user_id'] = usuario['id']
+            session['user_email'] = usuario['email']
+            session['user_nombre'] = usuario['nombre']
+            
+            # Manejar redirección a checkout si hay compra pendiente
+            next_page = request.args.get('next')
+            if next_page == 'checkout':
+                return redirect(url_for('checkout'))
+            
+            return redirect(url_for('mi_cuenta'))
+        else:
+            return render_template('registro.html', error='Error al crear la cuenta. Intenta nuevamente.')
+    
+    return render_template('registro.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/checkout')
+@login_required
+def checkout():
+    """
+    Ruta para retornar después de autenticación en el flujo de compra.
+    Redirige al índice principal donde JavaScript restaurará el estado de compra.
+    """
+    # Obtener el email del usuario autenticado
+    user_email = session.get('user_email', '')
+    
+    # Redirigir al índice con instrucción de completar compra
+    # El cliente restaurará el estado desde localStorage y abrirá el modal de email
+    response = redirect(url_for('index'))
+    response.set_cookie('complete_purchase', '1', max_age=10)  # 10 segundos
+    return response
+
+@app.route('/mi-cuenta')
+@login_required
+def mi_cuenta():
+    # Si es admin, redirigir al panel de admin
+    if session.get('user_rol') == 'admin':
+        return redirect(url_for('admin_index'))
+    
+    usuario = get_usuario_by_id(session['user_id'])
+    compras = get_user_compras(session['user_id'])
+    return render_template('usuario/dashboard.html', usuario=usuario, compras=compras)
+
+@app.route('/descargar-ticket/<int:ticket_id>')
+@login_required
+def descargar_ticket(ticket_id):
+    compra = get_user_compra_detalle(session['user_id'], ticket_id)
+    
+    if not compra:
+        return redirect(url_for('mi_cuenta'))
+    
+    # Por ahora, renderizar una página con el QR
+    return render_template('usuario/ticket.html', compra=compra)
+
+@app.route('/api/auth-status')
+def api_auth_status():
+    """Verificar estado de autenticación del usuario"""
+    try:
+        if 'user_id' in session:
+            return jsonify({
+                'authenticated': True,
+                'user_id': session['user_id'],
+                'user_name': session.get('user_nombre', 'Usuario'),
+                'user_email': session.get('user_email'),
+                'user_rol': session.get('user_rol', 'usuario')
+            })
+    except Exception as e:
+        print(f"Error in auth-status: {e}")
+    
+    return jsonify({'authenticated': False})
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    from datetime import datetime
+    stats = get_dashboard_stats()
+    return render_template('admin/dashboard.html', stats=stats, now=datetime.now())
 
 @app.route('/api/peliculas')
 def peliculas():
@@ -342,7 +542,8 @@ def mis_tiquetes():
 # ==========================================
 
 @app.route('/admin')
-def admin_dashboard():
+@admin_required
+def admin_index():
     try:
         from datetime import datetime
         stats = get_dashboard_stats()
@@ -350,7 +551,25 @@ def admin_dashboard():
     except Exception as e:
         return f"Error: {str(e)}"
 
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard_alt():
+    """Alias para /admin - redirige al dashboard"""
+    try:
+        from datetime import datetime
+        stats = get_dashboard_stats()
+        return render_template('admin/dashboard.html', stats=stats, now=datetime.now())
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@app.route('/admin/dashboard.html')
+@admin_required
+def admin_dashboard_html():
+    """Manejo de acceso con extensión .html - redirige a /admin"""
+    return redirect(url_for('admin_index'))
+
 @app.route('/admin/peliculas')
+@admin_required
 def admin_peliculas():
     try:
         peliculas = get_all_peliculas()
@@ -359,6 +578,7 @@ def admin_peliculas():
         return f"Error: {str(e)}"
 
 @app.route('/admin/peliculas/crear', methods=['GET', 'POST'])
+@admin_required
 def admin_crear_pelicula():
     if request.method == 'POST':
         try:
@@ -387,6 +607,7 @@ def admin_crear_pelicula():
         return f"Error: {str(e)}"
 
 @app.route('/admin/peliculas/editar/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def admin_editar_pelicula(id):
     if request.method == 'POST':
         try:
@@ -425,6 +646,7 @@ def admin_editar_pelicula(id):
         return f"Error: {str(e)}"
 
 @app.route('/admin/peliculas/eliminar/<int:id>', methods=['POST'])
+@admin_required
 def admin_eliminar_pelicula(id):
     try:
         delete_pelicula(id)
@@ -433,6 +655,7 @@ def admin_eliminar_pelicula(id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/admin/funciones')
+@admin_required
 def admin_funciones():
     try:
         funciones = get_all_funciones()
@@ -441,6 +664,7 @@ def admin_funciones():
         return f"Error: {str(e)}"
 
 @app.route('/admin/funciones/crear', methods=['GET', 'POST'])
+@admin_required
 def admin_crear_funcion():
     if request.method == 'POST':
         try:
@@ -464,6 +688,7 @@ def admin_crear_funcion():
         return f"Error: {str(e)}"
 
 @app.route('/admin/funciones/editar/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def admin_editar_funcion(id):
     if request.method == 'POST':
         try:
@@ -488,6 +713,7 @@ def admin_editar_funcion(id):
         return f"Error: {str(e)}"
 
 @app.route('/admin/funciones/eliminar/<int:id>', methods=['POST'])
+@admin_required
 def admin_eliminar_funcion(id):
     try:
         delete_funcion(id)
@@ -495,7 +721,81 @@ def admin_eliminar_funcion(id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/validar-funcion', methods=['POST'])
+@admin_required
+def validar_funcion():
+    """Validar si una función puede crearse sin conflictos de horarios"""
+    try:
+        from datetime import datetime, timedelta
+        
+        data = request.get_json()
+        pelicula_id = data.get('pelicula_id')
+        fecha = data.get('fecha')
+        hora = data.get('hora')
+        sala = data.get('sala')
+        
+        if not all([pelicula_id, fecha, hora, sala]):
+            return jsonify({'valid': False, 'error': 'Faltan parámetros'})
+        
+        # Obtener duración de pelicula y calcular hora_fin
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("SELECT duracion FROM peliculas WHERE id = %s", (pelicula_id,))
+        pelicula = cursor.fetchone()
+        
+        if not pelicula:
+            cursor.close()
+            conn.close()
+            return jsonify({'valid': False, 'error': 'Película no encontrada'})
+        
+        duracion = pelicula['duracion']
+        hora_obj = datetime.strptime(hora, '%H:%M').time()
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        hora_inicio = datetime.combine(fecha_obj, hora_obj)
+        hora_fin = (hora_inicio + timedelta(minutes=duracion)).time()
+        
+        # Buscar conflictos
+        cursor.execute("""
+            SELECT id, p.titulo,   f.hora, f.hora_fin
+            FROM funciones f
+            JOIN peliculas p ON f.pelicula_id = p.id
+            WHERE f.sala = %s AND f.fecha = %s
+        """, (sala, fecha))
+        
+        conflictos = []
+        for funcion in cursor.fetchall():
+            h_inicio = datetime.combine(fecha_obj, funcion['hora'])
+            h_fin = datetime.combine(fecha_obj, funcion['hora_fin'])
+            
+            if hora_inicio < h_fin and (hora_inicio + timedelta(minutes=duracion)) > h_inicio:
+                conflictos.append({
+                    'pelicula': funcion['titulo'],
+                    'hora': str(funcion['hora']),
+                    'hora_fin': str(funcion['hora_fin'])
+                })
+        
+        cursor.close()
+        conn.close()
+        
+        if conflictos:
+            return jsonify({
+                'valid': False,
+                'error': f'Conflicto de horarios en {sala}',
+                'conflictos': conflictos
+            })
+        
+        return jsonify({
+            'valid': True,
+            'hora_fin': hora_fin.strftime('%H:%M'),
+            'message': f'Función válida: {hora} - {hora_fin.strftime("%H:%M")} ({duracion} min)'
+        })
+        
+    except Exception as e:
+        return jsonify({'valid': False, 'error': str(e)})
+
 @app.route('/admin/generos')
+@admin_required
 def admin_generos():
     try:
         generos = get_all_generos()
@@ -504,6 +804,7 @@ def admin_generos():
         return f"Error: {str(e)}"
 
 @app.route('/admin/generos/crear', methods=['GET', 'POST'])
+@admin_required
 def admin_crear_genero():
     if request.method == 'POST':
         try:
@@ -516,6 +817,7 @@ def admin_crear_genero():
     return render_template('admin/crear_genero.html')
 
 @app.route('/admin/generos/editar/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def admin_editar_genero(id):
     if request.method == 'POST':
         try:
@@ -532,6 +834,7 @@ def admin_editar_genero(id):
         return f"Error: {str(e)}"
 
 @app.route('/admin/generos/eliminar/<int:id>', methods=['POST'])
+@admin_required
 def admin_eliminar_genero(id):
     try:
         delete_genero(id)
@@ -540,6 +843,7 @@ def admin_eliminar_genero(id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/admin/actores')
+@admin_required
 def admin_actores():
     try:
         actores = get_all_actores()
@@ -548,6 +852,7 @@ def admin_actores():
         return f"Error: {str(e)}"
 
 @app.route('/admin/actores/crear', methods=['GET', 'POST'])
+@admin_required
 def admin_crear_actor():
     if request.method == 'POST':
         try:
@@ -560,6 +865,7 @@ def admin_crear_actor():
     return render_template('admin/crear_actor.html')
 
 @app.route('/admin/actores/editar/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def admin_editar_actor(id):
     if request.method == 'POST':
         try:
@@ -576,6 +882,7 @@ def admin_editar_actor(id):
         return f"Error: {str(e)}"
 
 @app.route('/admin/actores/eliminar/<int:id>', methods=['POST'])
+@admin_required
 def admin_eliminar_actor(id):
     try:
         delete_actor(id)
@@ -584,6 +891,7 @@ def admin_eliminar_actor(id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/admin/asientos')
+@admin_required
 def admin_asientos():
     try:
         asientos = get_all_asientos()
@@ -593,6 +901,7 @@ def admin_asientos():
         return f"Error: {str(e)}"
 
 @app.route('/admin/asientos/crear', methods=['GET', 'POST'])
+@admin_required
 def admin_crear_asiento():
     if request.method == 'POST':
         try:
@@ -614,6 +923,7 @@ def admin_crear_asiento():
         return f"Error: {str(e)}"
 
 @app.route('/admin/asientos/editar/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def admin_editar_asiento(id):
     if request.method == 'POST':
         try:
@@ -636,6 +946,7 @@ def admin_editar_asiento(id):
         return f"Error: {str(e)}"
 
 @app.route('/admin/asientos/eliminar/<int:id>', methods=['POST'])
+@admin_required
 def admin_eliminar_asiento(id):
     try:
         delete_asiento(id)
