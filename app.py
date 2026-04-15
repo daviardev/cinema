@@ -339,10 +339,15 @@ def procesar_compra():
         ticket_code = data.get('ticket_code')
         total = float(data.get('total', 0))
         
+        print(f"[DEBUG] procesar_compra - Datos recibidos: funcion={funcion_id}, asientos={asiento_ids}, email={email}, code={ticket_code}, total={total}")
+        
         if not funcion_id or not asiento_ids or not email or not ticket_code:
+            print(f"[ERROR] Campos faltantes")
             return jsonify({'error': 'Missing required fields'}), 400
         
         ticket_id = process_purchase(funcion_id, asiento_ids, email, ticket_code, total)
+        
+        print(f"[DEBUG] process_purchase retornó: {ticket_id}")
         
         if ticket_id:
             # Obtener detalles de la función y película para el email
@@ -367,9 +372,13 @@ def procesar_compra():
                 'message': 'Compra procesada exitosamente. Email enviado.'
             }), 201
         else:
-            return jsonify({'error': 'No se pudo procesar la compra'}), 500
+            print(f"[ERROR] process_purchase devolvió None/False")
+            return jsonify({'error': 'No se pudo procesar la compra. Verifica los datos.'}), 500
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"[ERROR] Exception en procesar_compra: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error: {str(e)}'}), 500
 
 @app.route('/api/verificar-ticket/<codigo>', methods=['GET'])
 def verificar_ticket(codigo):
