@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacks]
+providers = ["python"]
+
+[deploy]
+restartPolicyMaxRetries = 5
+startCommand = "gunicorn app:app"
