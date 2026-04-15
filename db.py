@@ -1337,3 +1337,89 @@ def get_admin_by_email(email):
     """Obtener admin por email - busca usuario con rol='admin'
     (función mantenida para compatibilidad con app.py)"""
     return get_usuario_by_email(email)
+
+def initialize_database():
+    """Inicializar base de datos con datos básicos si está vacía"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Verificar si ya hay películas
+        cursor.execute("SELECT COUNT(*) as count FROM peliculas")
+        result = cursor.fetchone()
+        if result[0] > 0:
+            print("Base de datos ya inicializada")
+            return True
+        
+        # Insertar tipos de asientos
+        cursor.execute("""
+            INSERT INTO tipos_asientos (id, nombre, precio) VALUES 
+            (1,'estandar',12.50), (2,'premium',15.00), (3,'vip',18.50)
+        """)
+        
+        # Insertar géneros
+        genres = ['Acción', 'Drama', 'Ciencia Ficción', 'Terror', 'Comedia', 'Animación']
+        for genre in genres:
+            cursor.execute("INSERT INTO generos (nombre) VALUES (%s)", (genre,))
+        
+        # Insertar actores
+        actors = ['Tom Holland', 'Zendaya', 'Sadie Sink', 'Jon Bernthal', 'Mark Ruffalo']
+        for actor in actors:
+            cursor.execute("INSERT INTO actores (nombre) VALUES (%s)", (actor,))
+        
+        # Insertar formatos
+        cursor.execute("""
+            INSERT INTO formatos_pelicula (nombre, descripcion) VALUES 
+            ('DOB','Doblado al Español'), ('3D DOB','3D Doblado'), ('DIG SUB','Digital Subtitulado')
+        """)
+        
+        # Insertar películas
+        movies = [
+            ('Spider-Man: Brand New Day', 'Peter Parker maduro enfrenta nuevos desafíos', 180, 'PG-13', 'https://via.placeholder.com/300x400?text=Spider-Man', 4.5, 2026, 'Un gran poder', 'Destin Daniel Cretton'),
+            ('Backyardigans', 'Una aventura en el jardín trasero', 200, 'PG', 'https://via.placeholder.com/300x400?text=Backyardigans', 2.3, 2026, 'La aventura', 'Mosquito'),
+            ('Echoes of Eternity', 'Un viaje a través del tiempo', 145, 'PG-13', 'https://via.placeholder.com/300x400?text=Echoes', 7.9, 2025, 'El tiempo', 'Sarah Chen'),
+            ('The Neon Genesis', 'La realidad se desmorona', 138, 'NC-17', 'https://via.placeholder.com/300x400?text=Neon', 8.4, 2025, 'Bienvenido', 'David Torres'),
+            ('Crimson Tide: Leviathan', 'El océano guarda secretos', 156, 'PG-13', 'https://via.placeholder.com/300x400?text=Crimson', 7.8, 2025, 'Las profundidades', 'Anna Volkova'),
+        ]
+        
+        for titulo, desc, duracion, clasificacion, img, puntuacion, anio, tagline, director in movies:
+            cursor.execute("""
+                INSERT INTO peliculas (titulo, descripcion, duracion, clasificacion, imagen_url, estado, puntuacion, anio, tagline, director) 
+                VALUES (%s, %s, %s, %s, %s, 'activa', %s, %s, %s, %s)
+            """, (titulo, desc, duracion, clasificacion, img, puntuacion, anio, tagline, director))
+        
+        # Insertar asientos básicos (5 filas x 18 columnas)
+        for row_num, row_letter in enumerate(['A', 'B', 'C', 'D', 'E']):
+            tipo_id = [1, 2, 2, 2, 3][row_num]
+            for col in range(1, 19):
+                numero = f"{row_letter}{col}"
+                cursor.execute("""
+                    INSERT INTO asientos (numero, fila, columna, tipo_id) 
+                    VALUES (%s, %s, %s, %s)
+                """, (numero, row_letter, col, tipo_id))
+        
+        # Insertar funciones de prueba
+        cursor.execute("""
+            INSERT INTO funciones (pelicula_id, fecha, hora, hora_fin, precio, estado, sala, tecnologia, formato_id) 
+            VALUES 
+            (1, '2026-04-16', '14:30:00', '17:30:00', 12500, 'disponible', 'Sala A', 'DIG SUB', 1),
+            (1, '2026-04-16', '17:45:00', '20:45:00', 12500, 'disponible', 'Sala B', '3D DIG', 1),
+            (2, '2026-04-17', '15:00:00', '18:20:00', 12500, 'disponible', 'Sala C', 'DIG', 1),
+            (3, '2026-04-18', '13:45:00', '16:10:00', 11500, 'disponible', 'Sala D', 'DIG SUB', 1),
+            (4, '2026-04-19', '14:00:00', '16:18:00', 12500, 'disponible', 'Sala E', 'DIG SUB', 1),
+            (5, '2026-04-20', '13:30:00', '16:06:00', 11500, 'disponible', 'Sala A', 'DIG', 1)
+        """)
+        
+        conn.commit()
+        print("Base de datos inicializada exitosamente")
+        return True
+        
+    except Exception as e:
+        print(f"Error inicializando base de datos: {e}")
+        import traceback
+        traceback.print_exc()
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()

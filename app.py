@@ -16,7 +16,7 @@ from db import (get_db_connection, get_peliculas_cartelera, get_funciones_por_pe
                 get_all_asientos, get_asiento_by_id, get_tipos_asientos, create_asiento, update_asiento, delete_asiento,
                 get_dashboard_stats, hash_password, verify_password, email_exists, create_usuario, get_usuario_by_email,
                 get_usuario_by_id, get_user_compras, get_user_compra_detalle, process_purchase_with_user,
-                update_usuario_last_access, get_admin_by_email)
+                update_usuario_last_access, get_admin_by_email, initialize_database)
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
@@ -212,6 +212,18 @@ def registro():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+@app.route('/api/inicializar-bd', methods=['POST'])
+def inicializar_bd():
+    """Endpoint para inicializar la base de datos con datos básicos"""
+    try:
+        result = initialize_database()
+        if result:
+            return jsonify({'success': True, 'message': 'Base de datos inicializada correctamente'}), 200
+        else:
+            return jsonify({'success': False, 'error': 'Error al inicializar la base de datos'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/checkout')
 @login_required
