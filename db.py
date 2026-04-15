@@ -186,23 +186,37 @@ def process_purchase(funcion_id, asiento_ids, email, ticket_code, total=0):
         # Obtener el ID del tiquete insertado
         ticket_id = cursor.lastrowid
         
+        # Si no tenemos ticket_id, algo salió mal
+        if not ticket_id:
+            print(f"ERROR: No ticket_id received after insert")
+            return None
+        
         # 2. Insertar en detalle_tiquete para cada asiento
         insert_detail = """
             INSERT INTO detalle_tiquete (tiquete_id, asiento_id, funcion_id)
             VALUES (%s, %s, %s)
         """
         for asiento_id in asiento_ids:
-            print(f"Inserting detail: ticket={ticket_id}, asiento={asiento_id}, funcion={funcion_id}")
-            cursor.execute(insert_detail, (ticket_id, asiento_id, funcion_id))
+            try:
+                print(f"Inserting detail: ticket={ticket_id}, asiento={asiento_id}, funcion={funcion_id}")
+                cursor.execute(insert_detail, (ticket_id, asiento_id, funcion_id))
+                conn.commit()
+            except Exception as detail_error:
+                print(f"Advertencia: Error insertando detalle para asiento {asiento_id}: {detail_error}")
+                # No fallar completamente, pero registrar el error
+                continue
         
-        conn.commit()
         print(f"All details inserted successfully")
         
         # 3. Limpiar reservas temporales
         for asiento_id in asiento_ids:
-            delete_query = "DELETE FROM reservas_temporales WHERE funcion_id = %s AND asiento_id = %s"
-            cursor.execute(delete_query, (funcion_id, asiento_id))
-            print(f"Temporary reservation cleaned for asiento {asiento_id}")
+            try:
+                delete_query = "DELETE FROM reservas_temporales WHERE funcion_id = %s AND asiento_id = %s"
+                cursor.execute(delete_query, (funcion_id, asiento_id))
+                print(f"Temporary reservation cleaned for asiento {asiento_id}")
+            except Exception as clean_error:
+                print(f"Advertencia: Error limpiando reserva para asiento {asiento_id}: {clean_error}")
+                continue
         
         conn.commit()
         print(f"Purchase processed successfully. Ticket ID: {ticket_id}")
