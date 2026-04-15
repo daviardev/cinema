@@ -363,40 +363,42 @@ def procesar_compra():
             print(f"[ERROR] Campos faltantes")
             return jsonify({'error': 'Missing required fields'}), 400
         
+        # Procesar la compra
         ticket_id = process_purchase(funcion_id, asiento_ids, email, ticket_code, total)
         
         print(f"[DEBUG] process_purchase retornó: {ticket_id}")
         
         if ticket_id:
-            # Obtener detalles de la función y película para el email
+            # Intentar enviar email (pero no fallar si hay error)
             try:
                 funcion_data = get_funcion_with_details(funcion_id)
                 if funcion_data:
-                    # Obtener asientos para el email
-                    asientos_map = get_asientos_disponibles(funcion_id)
-                    asientos_list = [asiento for asiento in asientos_map if int(asiento['id']) in asiento_ids]
-                    
-                    # Enviar email con el ticket
-                    send_ticket_email(email, ticket_code, funcion_data.get('pelicula', 'Película'), 
-                                    funcion_data, asientos_list, mail)
+                    try:
+                        asientos_map = get_asientos_disponibles(funcion_id)
+                        asientos_list = [asiento for asiento in asientos_map if int(asiento['id']) in asiento_ids]
+                        send_ticket_email(email, ticket_code, funcion_data.get('pelicula', 'Película'), 
+                                        funcion_data, asientos_list, mail)
+                        print(f"Email enviado a {email}")
+                    except Exception as asiento_error:
+                        print(f"Advertencia: Error obteniendo/enviando asientos: {asiento_error}")
             except Exception as email_error:
-                print(f"Error enviando email: {email_error}")
-                # No fallar la compra si hay error en el email
+                print(f"Advertencia: Error preparando email: {email_error}")
             
+            # SIEMPRE devolver éxito si el ticket se guardó
             return jsonify({
                 'success': True, 
                 'ticket_id': ticket_id,
                 'ticket_code': ticket_code,
-                'message': 'Compra procesada exitosamente. Email enviado.'
+                'message': 'Compra procesada exitosamente!'
             }), 201
         else:
             print(f"[ERROR] process_purchase devolvió None/False")
-            return jsonify({'error': 'No se pudo procesar la compra. Verifica los datos.'}), 500
+            return jsonify({'success': False, 'error': 'No se pudo procesar la compra'}), 500
     except Exception as e:
         print(f"[ERROR] Exception en procesar_compra: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Error: {str(e)}'}), 500
+        return jsonify({'success': False, 'error': f'Error del servidor: {str(e)}'}), 500
 
 @app.route('/api/verificar-ticket/<codigo>', methods=['GET'])
 def verificar_ticket(codigo):
