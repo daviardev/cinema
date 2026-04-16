@@ -173,12 +173,7 @@ Véase `DOCUMENTACION_TECNICA.md` para detalles completos del esquema.
 
 ## 📝 Licencia
 
-Proyecto de demostración - Sin licencia especificada
-
-## 👤 Autor
-
-Jerson David Silva - dev.daviar@gmail.com
-
+Proyecto de demostración - Sin licencia especificad
 ---
 
 **Última actualización:** 15 de abril de 2026
